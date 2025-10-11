@@ -96,7 +96,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
   {
     id: "14",
     name: "Pollo frito",
-    price: 1,5,
+    price: 1.5,
     image: "/pollo-frito.jpg",
     category: "entrantes",
   },
@@ -180,7 +180,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     {
     id: "26",
     name: "Sepia a la plancha",
-    price: 4,5,
+    price: 4.5,
     image: "/espaguetis-bolonesa.jpg",
     category: "principales",
   },
