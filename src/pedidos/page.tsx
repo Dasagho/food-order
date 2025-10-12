@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Edit, Package } from "lucide-react";
+import { ArrowLeft, Trash2, Edit, Package, Calendar } from "lucide-react";
 import type { ConfirmedOrder } from "@/types/order";
 import { getOrders, deleteOrder } from "@/lib/order-storage";
 import { OrderDetailModal } from "@/components/order-detail-modal";
+import { DailySalesSummary } from "@/components/daily-sales-summary";
 import { useNavigate } from "react-router-dom";
 
 export default function PedidosPage() {
@@ -12,12 +13,29 @@ export default function PedidosPage() {
   const [selectedOrder, setSelectedOrder] = useState<ConfirmedOrder | null>(
     null,
   );
-
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [showSummary, setShowSummary] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setOrders(getOrders());
   }, []);
+
+  const availableDates = useMemo(() => {
+    const dates = orders.map((order) => {
+      const date = new Date(order.date);
+      return date.toISOString().split("T")[0];
+    });
+    return Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    if (!selectedDate) return orders;
+    return orders.filter((order) => {
+      const orderDate = new Date(order.date).toISOString().split("T")[0];
+      return orderDate === selectedDate;
+    });
+  }, [orders, selectedDate]);
 
   const handleDeleteOrder = (orderId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este pedido?")) {
@@ -37,6 +55,16 @@ export default function PedidosPage() {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+    }).format(date);
+  };
+
+  const formatDateLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("es-ES", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     }).format(date);
   };
 
@@ -76,7 +104,7 @@ export default function PedidosPage() {
             >
               <ArrowLeft className="w-8 h-8" />
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-foreground">
                 Historial de Pedidos
               </h1>
@@ -88,9 +116,52 @@ export default function PedidosPage() {
         </div>
       </div>
 
-      {/* Orders List */}
+      {orders.length > 0 && (
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Selector de fecha */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-muted-foreground" />
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-12 px-4 text-base rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="">Todas las fechas</option>
+                {availableDates.map((date) => (
+                  <option key={date} value={date}>
+                    {formatDateLabel(date)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Botón de resumen */}
+            {selectedDate && (
+              <Button
+                onClick={() => setShowSummary(!showSummary)}
+                className="h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                {showSummary ? "Ver Pedidos" : "Ver Resumen del Día"}
+              </Button>
+            )}
+
+            {/* Contador de pedidos filtrados */}
+            <div className="ml-auto text-lg text-muted-foreground">
+              {filteredOrders.length}{" "}
+              {filteredOrders.length === 1 ? "pedido" : "pedidos"}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-6">
-        {orders.length === 0 ? (
+        {showSummary && selectedDate ? (
+          <DailySalesSummary
+            orders={filteredOrders}
+            selectedDate={selectedDate}
+          />
+        ) : filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="bg-muted rounded-full p-6">
@@ -98,23 +169,29 @@ export default function PedidosPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-semibold text-foreground mb-2">
-                  No hay pedidos
+                  {selectedDate
+                    ? "No hay pedidos en esta fecha"
+                    : "No hay pedidos"}
                 </h3>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Aún no has realizado ningún pedido
+                  {selectedDate
+                    ? "Selecciona otra fecha o elimina el filtro"
+                    : "Aún no has realizado ningún pedido"}
                 </p>
-                <Button
-                  onClick={() => navigate("/")}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg"
-                >
-                  Hacer un Pedido
-                </Button>
+                {!selectedDate && (
+                  <Button
+                    onClick={() => navigate("/")}
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground h-14 text-lg"
+                  >
+                    Hacer un Pedido
+                  </Button>
+                )}
               </div>
             </div>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <Card
                 key={order.id}
                 className="p-6 hover:shadow-lg transition-shadow"
@@ -140,11 +217,12 @@ export default function PedidosPage() {
                 <div className="space-y-2 mb-4">
                   {order.items.slice(0, 3).map((item) => (
                     <div
-                      key={item.id}
+                      key={`${item.id}-${item.isHalfPortion}`}
                       className="flex items-center justify-between text-base"
                     >
                       <span className="text-foreground">
                         {item.quantity}x {item.name}
+                        {item.isHalfPortion && " (Media)"}
                       </span>
                       <span className="text-muted-foreground">
                         €{(item.price * item.quantity).toFixed(2)}

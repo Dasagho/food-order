@@ -1,6 +1,6 @@
 import type { OrderItem } from "@/types/order";
 
-export const menuItems: Omit<OrderItem, "quantity">[] = [
+export const menuItems: Omit<OrderItem, "quantity" | "isHalfPortion">[] = [
   // Arroces y Paellas
   {
     id: "1",
@@ -8,6 +8,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4.5,
     image: "/paella-valenciana.jpg",
     category: "arroces",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
   {
     id: "2",
@@ -15,6 +17,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4.5,
     image: "/arroz-de-marisco.jpg",
     category: "arroces",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
   {
     id: "3",
@@ -22,6 +26,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4.5,
     image: "/fideua-de-marisco.jpg",
     category: "arroces",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
   {
     id: "4",
@@ -29,6 +35,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4.5,
     image: "/arroz-al-horno.jpg",
     category: "arroces",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
   {
     id: "5",
@@ -36,6 +44,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 1,
     image: "/croqueta-de-jamon.jpg",
     category: "entrantes",
+    portionType: "unidades",
   },
   {
     id: "6",
@@ -43,6 +52,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 1,
     image: "/croqueta-de-bacalao.jpg",
     category: "entrantes",
+    portionType: "unidades",
   },
   {
     id: "7",
@@ -50,6 +60,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 1,
     image: "/croqueta-de-queso.jpg",
     category: "entrantes",
+    portionType: "unidades",
   },
   {
     id: "8",
@@ -57,6 +68,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 1,
     image: "/croqueta-de-gamba-sepia.jpg",
     category: "entrantes",
+    portionType: "unidades",
   },
   {
     id: "9",
@@ -64,13 +76,17 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 1.5,
     image: "/patatas-fritas.jpg",
     category: "entrantes",
+    portionType: "racion",
+    halfPortionPrice: 1,
   },
   {
     id: "10",
     name: "Patatas bravas",
-    price: 2.5,
+    price: 3,
     image: "/patatas-bravas.jpg",
     category: "entrantes",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "11",
@@ -78,6 +94,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 5,
     image: "/pollo-con-patatas-panaderas.jpg",
     category: "principales",
+    portionType: "unidades",
   },
   {
     id: "12",
@@ -85,6 +102,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3.5,
     image: "/pechuga-empanada.jpg",
     category: "entrantes",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "13",
@@ -92,13 +111,16 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 8,
     image: "/pollo-a-last.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 5,
   },
   {
     id: "14",
     name: "Pollo frito",
-    price: 1.5,
+    price: 2,
     image: "/pollo-frito.jpg",
     category: "entrantes",
+    portionType: "unidades",
   },
   {
     id: "15",
@@ -106,6 +128,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4.5,
     image: "/albondigas.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
   {
     id: "16",
@@ -113,6 +137,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3,
     image: "/ensaladilla-rusa.jpg",
     category: "entrantes",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "17",
@@ -120,6 +146,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3,
     image: "/ensalada-valenciana.jpg",
     category: "entrantes",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "18",
@@ -127,6 +155,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3.5,
     image: "/lasana-de-carne.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2.5,
   },
   {
     id: "19",
@@ -134,6 +164,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3.5,
     image: "/canelones.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2.5,
   },
   {
     id: "20",
@@ -141,6 +173,8 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3.5,
     image: "/macarrones-con-bechamel.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2.5,
   },
   {
     id: "21",
@@ -148,6 +182,7 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 4,
     image: "/merluza-rebozada.jpg",
     category: "principales",
+    portionType: "unidades",
   },
   {
     id: "22",
@@ -155,34 +190,53 @@ export const menuItems: Omit<OrderItem, "quantity">[] = [
     price: 3.5,
     image: "/espaguetis-bolonesa.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "23",
     name: "Espaguetis con atún",
     price: 3.5,
-    image: "/espaguetis-bolonesa.jpg",
+    image: "/espaguetis-con-atun.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
   {
     id: "24",
     name: "Solomillo con salsa pimienta",
     price: 4.5,
-    image: "/espaguetis-bolonesa.jpg",
+    image: "/solomillo-a-la-pimienta.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 3,
   },
-    {
+  {
     id: "25",
-    name: "Sardinas",
+    name: "Sardinas (6 unidades)",
     price: 3.0,
-    image: "/espaguetis-bolonesa.jpg",
+    image: "/sardinas.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
-    {
+  {
     id: "26",
     name: "Sepia a la plancha",
     price: 4.5,
-    image: "/espaguetis-bolonesa.jpg",
+    image: "/sepia.jpg",
     category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 3,
+  },
+  {
+    id: "27",
+    name: "Pechuga de pollo con verdura",
+    price: 3,
+    image: "/pollo-con-verduras.jpg",
+    category: "principales",
+    portionType: "racion",
+    halfPortionPrice: 2,
   },
 ];
 

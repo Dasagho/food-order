@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { registerSW } from "virtual:pwa-register";
 import "./styles/globals.css";
+import "./globals.css";
 
-import App from "./App";
 import Home from "./Home";
 import PedidosPage from "./pedidos/page";
+import AdminPage from "./admin/page";
 
 registerSW({
   onNeedRefresh() {},
@@ -16,12 +17,11 @@ registerSW({
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/pedidos" element={<PedidosPage />} />
-        </Routes>
-      </App>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/pedidos" element={<PedidosPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+      </Routes>
     </BrowserRouter>
   </React.StrictMode>,
 );
