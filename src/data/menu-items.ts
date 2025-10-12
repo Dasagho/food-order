@@ -1,7 +1,6 @@
 import type { OrderItem } from "@/types/order";
 
 export const menuItems: Omit<OrderItem, "quantity" | "isHalfPortion">[] = [
-  // Arroces y Paellas
   {
     id: "1",
     name: "Paella Valenciana",
@@ -238,6 +237,46 @@ export const menuItems: Omit<OrderItem, "quantity" | "isHalfPortion">[] = [
     portionType: "racion",
     halfPortionPrice: 2,
   },
+  {
+    id: "28",
+    name: "Lata de refresco",
+    price: 1,
+    image: "/lata-de-refresco.jpg",
+    category: "bebidas",
+    portionType: "unidades",
+  },
+  {
+    id: "29",
+    name: "Lata de cerveza",
+    price: 1,
+    image: "/lata-de-cerveza.jpg",
+    category: "bebidas",
+    portionType: "unidades",
+  },
+  {
+    id: "30",
+    name: "Botella grande de agua",
+    price: 2.5,
+    image: "/botella-grande-de-agua.jpg",
+    category: "bebidas",
+    portionType: "unidades",
+  },
+  {
+    id: "31",
+    name: "Botella grande de refresco",
+    price: 2.5,
+    image: "/botella-grande-de-refresco.jpg",
+    category: "bebidas",
+    portionType: "unidades",
+  },
+  {
+    id: "32",
+    name: "Botella grande de cerveza",
+    price: 2.5,
+    image: "/botella-grande-de-cerveza.jpg",
+    category: "bebidas",
+    portionType: "unidades",
+  },
 ];
 
 export const categoryNames = {
@@ -245,4 +284,5 @@ export const categoryNames = {
   entrantes: "Entrantes",
   principales: "Platos Principales",
   postres: "Postres",
+  bebidas: "Bebidas",
 };

@@ -35,9 +35,23 @@ export function MenuGrid({
     const loadedCategories = getCategories();
 
     setMenuItems(loadedProducts);
+
+    const categoryOrder: MenuCategory[] = [
+      "entrantes",
+      "arroces",
+      "principales",
+      "bebidas",
+      "postres",
+    ];
+    const sortedCategories = loadedCategories.sort((a, b) => {
+      const indexA = categoryOrder.indexOf(a.id);
+      const indexB = categoryOrder.indexOf(b.id);
+      return indexA - indexB;
+    });
+
     setCategories([
       { value: "all", label: "Todos" },
-      ...loadedCategories.map((cat) => ({ value: cat.id, label: cat.name })),
+      ...sortedCategories.map((cat) => ({ value: cat.id, label: cat.name })),
     ]);
   }, []);
 

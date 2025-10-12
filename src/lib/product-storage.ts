@@ -20,7 +20,8 @@ function initializeDefaultData() {
       { id: "arroces", name: "Arroces y Paellas", displayOrder: 1 },
       { id: "entrantes", name: "Entrantes", displayOrder: 2 },
       { id: "principales", name: "Platos Principales", displayOrder: 3 },
-      { id: "postres", name: "Postres", displayOrder: 4 },
+      { id: "bebidas", name: "Bebidas", displayOrder: 4 },
+      { id: "postres", name: "Postres", displayOrder: 5 },
     ];
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
   }

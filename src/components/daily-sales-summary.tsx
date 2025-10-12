@@ -80,7 +80,7 @@ export function DailySalesSummary({
         </p>
       </div>
 
-      {/* Estad�sticas principales */}
+      {/* Estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-accent/10 rounded-lg p-4 border border-accent/20">
           <div className="flex items-center gap-3 mb-2">
@@ -122,7 +122,7 @@ export function DailySalesSummary({
             </span>
           </div>
           <p className="text-3xl font-bold text-green-600">
-            ?{totalSales.toFixed(2)}
+            €{totalSales.toFixed(2)}
           </p>
         </div>
       </div>
@@ -147,7 +147,7 @@ export function DailySalesSummary({
                 </p>
               </div>
               <p className="text-xl font-bold text-primary">
-                ?{product.total.toFixed(2)}
+                €{product.total.toFixed(2)}
               </p>
             </div>
           ))}

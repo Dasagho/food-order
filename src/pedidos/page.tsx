@@ -1,39 +1,46 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Edit, Package, Calendar } from "lucide-react";
+import { ArrowLeft, Trash2, Edit, Package, Calendar, X } from "lucide-react";
 import type { ConfirmedOrder } from "@/types/order";
 import { getOrders, deleteOrder } from "@/lib/order-storage";
 import { OrderDetailModal } from "@/components/order-detail-modal";
 import { DailySalesSummary } from "@/components/daily-sales-summary";
+import { DatePicker } from "@/components/date-picker";
 import { useNavigate } from "react-router-dom";
+import {
+  toMadridDateString,
+  formatMadridDate,
+  getTodayInMadrid,
+} from "@/lib/date-utils";
 
 export default function PedidosPage() {
   const [orders, setOrders] = useState<ConfirmedOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<ConfirmedOrder | null>(
     null,
   );
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    getTodayInMadrid(),
+  );
   const [showSummary, setShowSummary] = useState(false);
   const navigate = useNavigate();
-
   useEffect(() => {
     setOrders(getOrders());
   }, []);
 
   const availableDates = useMemo(() => {
     const dates = orders.map((order) => {
-      const date = new Date(order.date);
-      return date.toISOString().split("T")[0];
+      return toMadridDateString(new Date(order.date));
     });
     return Array.from(new Set(dates)).sort((a, b) => b.localeCompare(a));
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
     if (!selectedDate) return orders;
+    const selectedDateString = toMadridDateString(selectedDate);
     return orders.filter((order) => {
-      const orderDate = new Date(order.date).toISOString().split("T")[0];
-      return orderDate === selectedDate;
+      const orderDate = toMadridDateString(new Date(order.date));
+      return orderDate === selectedDateString;
     });
   }, [orders, selectedDate]);
 
@@ -49,23 +56,23 @@ export default function PedidosPage() {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("es-ES", {
+    return formatMadridDate(date, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
+    });
   };
 
   const formatDateLabel = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("es-ES", {
+    return formatMadridDate(date, {
       weekday: "short",
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(date);
+    });
   };
 
   const getStatusColor = (status: ConfirmedOrder["status"]) => {
@@ -122,25 +129,30 @@ export default function PedidosPage() {
             {/* Selector de fecha */}
             <div className="flex items-center gap-2">
               <Calendar className="w-6 h-6 text-muted-foreground" />
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="h-12 px-4 text-base rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Todas las fechas</option>
-                {availableDates.map((date) => (
-                  <option key={date} value={date}>
-                    {formatDateLabel(date)}
-                  </option>
-                ))}
-              </select>
+              <DatePicker
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                availableDates={availableDates}
+                placeholder="Seleccionar las fechas"
+              />
+              {selectedDate && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedDate(getTodayInMadrid())}
+                  className="h-14 w-14 shrink-0"
+                  title="Volver a hoy"
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+              )}
             </div>
 
             {/* Botón de resumen */}
             {selectedDate && (
               <Button
                 onClick={() => setShowSummary(!showSummary)}
-                className="h-12 text-base bg-accent hover:bg-accent/90 text-accent-foreground"
+                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground px-6"
               >
                 {showSummary ? "Ver Pedidos" : "Ver Resumen del Día"}
               </Button>
@@ -159,7 +171,7 @@ export default function PedidosPage() {
         {showSummary && selectedDate ? (
           <DailySalesSummary
             orders={filteredOrders}
-            selectedDate={selectedDate}
+            selectedDate={toMadridDateString(selectedDate)}
           />
         ) : filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
@@ -203,7 +215,7 @@ export default function PedidosPage() {
                       Pedido #{order.orderNumber}
                     </h3>
                     <p className="text-base text-muted-foreground">
-                      {formatDate(order.date)}
+                      {formatDate(new Date(order.date))}
                     </p>
                   </div>
                   <span

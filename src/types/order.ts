@@ -4,7 +4,7 @@ export interface OrderItem {
   price: number;
   image: string;
   quantity: number;
-  category: "arroces" | "entrantes" | "principales" | "postres";
+  category: "arroces" | "entrantes" | "principales" | "postres" | "bebidas";
   portionType: "racion" | "unidades";
   halfPortionPrice?: number;
   isHalfPortion?: boolean;
@@ -19,7 +19,12 @@ export interface ConfirmedOrder {
   status: "completado" | "en_proceso" | "cancelado";
 }
 
-export type MenuCategory = "arroces" | "entrantes" | "principales" | "postres";
+export type MenuCategory =
+  | "arroces"
+  | "entrantes"
+  | "principales"
+  | "postres"
+  | "bebidas";
 
 export interface MenuItem {
   id: string;

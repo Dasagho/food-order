@@ -7,6 +7,7 @@ import { ClipboardList, Settings } from "lucide-react";
 import type { OrderItem, ConfirmedOrder } from "@/types/order";
 import { saveOrder, getNextOrderNumber } from "@/lib/order-storage";
 import { useNavigate } from "react-router-dom";
+import { getMadridDate } from "@/lib/date-utils";
 
 export default function Home() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -86,7 +87,7 @@ export default function Home() {
       orderNumber: getNextOrderNumber(),
       items: orderItems,
       total,
-      date: new Date(),
+      date: getMadridDate(),
       status: "completado",
     };
 
