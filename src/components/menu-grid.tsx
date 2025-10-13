@@ -34,13 +34,18 @@ export function MenuGrid({
     const loadedProducts = getProducts();
     const loadedCategories = getCategories();
 
-    setMenuItems(loadedProducts);
+    const sortedProducts = loadedProducts.sort((a, b) => {
+      const orderA = a.displayOrder ?? 999;
+      const orderB = b.displayOrder ?? 999;
+      return orderA - orderB;
+    });
+
+    setMenuItems(sortedProducts);
 
     const categoryOrder: MenuCategory[] = [
       "entrantes",
       "arroces",
       "principales",
-      "bebidas",
       "postres",
     ];
     const sortedCategories = loadedCategories.sort((a, b) => {
@@ -70,10 +75,14 @@ export function MenuGrid({
   return (
     <div className="flex flex-col h-full">
       <header className="border-b border-border bg-card px-6 py-6">
-        <h1 className="text-4xl font-semibold text-foreground">Menú</h1>
-        <p className="text-lg text-muted-foreground mt-2">
-          Selecciona los platos para tu pedido
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-semibold text-foreground">Menú</h1>
+            <p className="text-lg text-muted-foreground mt-2">
+              Selecciona los platos para tu pedido
+            </p>
+          </div>
+        </div>
       </header>
 
       <div className="border-b border-border bg-card px-6 py-4 overflow-x-auto">
@@ -140,7 +149,6 @@ export function MenuGrid({
                       className="space-y-3"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Botón para ración completa */}
                       <div className="flex items-center gap-2">
                         {fullQuantity > 0 ? (
                           <>
@@ -196,7 +204,6 @@ export function MenuGrid({
                         )}
                       </div>
 
-                      {/* Botón para media ración */}
                       <div className="flex items-center gap-2">
                         {halfQuantity > 0 ? (
                           <>
@@ -254,7 +261,6 @@ export function MenuGrid({
                       </div>
                     </div>
                   ) : (
-                    // Platos por unidades (comportamiento original)
                     <div onClick={(e) => e.stopPropagation()}>
                       {fullQuantity > 0 ? (
                         <div className="flex items-center justify-between gap-3">

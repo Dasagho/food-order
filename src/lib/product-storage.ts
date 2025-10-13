@@ -59,6 +59,11 @@ export function deleteProduct(productId: string): void {
   localStorage.setItem(PRODUCTS_KEY, JSON.stringify(filtered));
 }
 
+export function updateProductOrder(products: MenuItem[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+}
+
 // Categorías
 export function getCategories(): Category[] {
   if (typeof window === "undefined") return [];

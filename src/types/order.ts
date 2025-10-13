@@ -34,6 +34,7 @@ export interface MenuItem {
   category: MenuCategory;
   portionType: "racion" | "unidades";
   halfPortionPrice?: number;
+  displayOrder?: number;
 }
 
 export interface Category {
