@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { registerSW } from "virtual:pwa-register";
+import { Toaster } from "sonner";
 import "./styles/globals.css";
 import "./globals.css";
 
@@ -23,5 +24,6 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
+    <Toaster position="top-center" richColors />
   </React.StrictMode>,
 );

@@ -8,6 +8,13 @@ import type { OrderItem, ConfirmedOrder } from "@/types/order";
 import { saveOrder, getNextOrderNumber } from "@/lib/order-storage";
 import { useNavigate } from "react-router-dom";
 import { getMadridDate } from "@/lib/date-utils";
+import { toast } from "sonner";
+import {
+  syncOrderToPocketBase,
+  isOnline,
+  isAuthenticated,
+} from "@/lib/pocketbase";
+import { AuthButton } from "./components/auth-button";
 
 export default function Home() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -76,7 +83,7 @@ export default function Home() {
     }
   };
 
-  const handleFinalizeOrder = () => {
+  const handleFinalizeOrder = async () => {
     const total = orderItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
@@ -93,12 +100,27 @@ export default function Home() {
 
     saveOrder(confirmedOrder);
 
+    if (isOnline() && isAuthenticated()) {
+      const synced = await syncOrderToPocketBase(confirmedOrder);
+      if (synced) {
+        toast.success("Pedido guardado y sincronizado con la nube");
+      } else {
+        toast.warning("Pedido guardado localmente - No se pudo sincronizar");
+      }
+    } else {
+      toast.info("Pedido guardado localmente - Sin conexión o no autenticado");
+    }
+
     setOrderItems([]);
     setShowConfirmation(false);
   };
 
   return (
     <main className="min-h-screen bg-background">
+      <div className="fixed top-6 left-6 z-40">
+        <AuthButton />
+      </div>
+
       <div className="fixed top-6 right-6 z-40 flex gap-3">
         <Button
           size="lg"
