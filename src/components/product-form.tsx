@@ -180,7 +180,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
             </Label>
             <Input
               id="image"
-              type="url"
+              type="text"
               value={formData.image}
               onChange={(e) =>
                 setFormData({ ...formData, image: e.target.value })
