@@ -8,8 +8,10 @@ import {
   getCurrentUser,
   isOnline,
   onAuthChange,
+  syncAllOrdersToPocketBase,
 } from "@/lib/pocketbase";
 import { toast } from "sonner";
+import { getOrders } from "@/lib/order-storage";
 
 export function AuthButton() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -33,6 +35,7 @@ export function AuthButton() {
     const handleOnline = () => {
       setOnline(true);
       toast.success("Conexión a internet restaurada");
+      syncAllOrdersToPocketBase(getOrders());
     };
 
     const handleOffline = () => {
@@ -63,6 +66,7 @@ export function AuthButton() {
       toast.error("Error al iniciar sesión");
       console.error(error);
     } finally {
+      syncAllOrdersToPocketBase(getOrders());
       setLoading(false);
     }
   };
@@ -75,38 +79,34 @@ export function AuthButton() {
   };
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Indicador de conexión */}
-      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted">
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-sm">
         {online ? (
-          <>
-            <Wifi className="w-5 h-5 text-green-500" />
-            <span className="text-sm font-medium">Online</span>
-          </>
+          <div className="px-2 py-1 gap-2 flex justify-center items-center text-lg">
+            <Wifi className="w-4 h-4 text-green-500" />
+            <span className="font-medium">Online</span>
+          </div>
         ) : (
           <>
-            <WifiOff className="w-5 h-5 text-red-500" />
-            <span className="text-sm font-medium">Offline</span>
+            <WifiOff className="w-4 h-4 text-red-500" />
+            <span className="font-medium">Offline</span>
           </>
         )}
       </div>
 
-      {/* Bot�n de autenticaci�n */}
       {authenticated ? (
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10">
-            <User className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              {user?.email || "Usuario"}
-            </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-lg">
+            <User className="w-4 h-4" />
+            <span className="font-medium">{user?.email || "Usuario"}</span>
           </div>
           <Button
             onClick={handleLogout}
             variant="outline"
             size="lg"
-            className="h-12 px-6 text-lg bg-transparent"
+            className="h-9 px-4 py-6 text-lg bg-transparent"
           >
-            <LogOut className="w-5 h-5 mr-2" />
+            <LogOut className="w-4 h-4 mr-1.5" />
             Cerrar Sesión
           </Button>
         </div>
@@ -114,10 +114,10 @@ export function AuthButton() {
         <Button
           onClick={handleLogin}
           disabled={loading || !online}
-          size="lg"
-          className="h-12 px-6 text-lg"
+          size="sm"
+          className="h-9 px-4"
         >
-          <LogIn className="w-5 h-5 mr-2" />
+          <LogIn className="w-4 h-4 mr-1.5" />
           {loading ? "Iniciando..." : "Iniciar Sesión"}
         </Button>
       )}

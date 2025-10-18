@@ -3,7 +3,6 @@ import type { ConfirmedOrder } from "@/types/order";
 
 // Inicializar PocketBase - Reemplaza con tu URL de PocketBase
 const PB_URL = import.meta.env.VITE_POCKETBASE_URL;
-console.log(PB_URL);
 
 let pb: PocketBase | null = null;
 
@@ -15,7 +14,7 @@ export function getPocketBase(): PocketBase {
   return pb;
 }
 
-// Verificar si hay conexi�n a internet
+// Verificar si hay conexión a internet
 export function isOnline(): boolean {
   if (typeof window === "undefined") return false;
   return navigator.onLine;
@@ -60,28 +59,50 @@ export async function syncOrderToPocketBase(
   order: ConfirmedOrder,
 ): Promise<boolean> {
   if (!isOnline() || !isAuthenticated()) {
-    console.log("No se puede sincronizar: sin conexi�n o no autenticado");
+    console.log("No se puede sincronizar: sin conexión o no autenticado");
     return false;
   }
 
   const pb = getPocketBase();
+  const collection = pb.collection("orders");
+
+  const payload = {
+    order_id: order.id,
+    order_number: order.orderNumber,
+    items: JSON.stringify(order.items),
+    total: order.total,
+    date: order.date.toISOString(),
+    status: order.status,
+    user: pb.authStore.model?.id,
+  };
 
   try {
-    // Crear el pedido en PocketBase
-    const record = await pb.collection("orders").create({
-      order_id: order.id,
-      order_number: order.orderNumber,
-      items: JSON.stringify(order.items),
-      total: order.total,
-      date: order.date.toISOString(),
-      status: order.status,
-      user: pb.authStore.model?.id,
-    });
+    let existingRecord;
+    try {
+      existingRecord = await collection.getFirstListItem(
+        `order_id = "${order.id}"`,
+        {
+          fields: "id",
+        },
+      );
+    } catch (e: any) {
+      if (e.status !== 404) {
+        throw e;
+      }
+    }
 
-    console.log("Pedido sincronizado con PocketBase:", record.id);
+    let record;
+    if (existingRecord) {
+      record = await collection.update(existingRecord.id, payload);
+      console.log("Pedido actualizado en PocketBase:", record.id);
+    } else {
+      record = await collection.create(payload);
+      console.log("Pedido creado en PocketBase:", record.id);
+    }
+
     return true;
   } catch (error) {
-    console.error("Error al sincronizar pedido:", error);
+    console.error("Error al sincronizar/actualizar pedido:", error);
     return false;
   }
 }
@@ -119,17 +140,17 @@ export async function syncAllOrdersToPocketBase(
   localOrders: ConfirmedOrder[],
 ): Promise<void> {
   if (!isOnline() || !isAuthenticated()) {
-    console.log("No se puede sincronizar: sin conexi�n o no autenticado");
+    console.log("No se puede sincronizar: sin conexión o no autenticado");
     return;
   }
 
-  console.log("Iniciando sincronizaci�n de", localOrders.length, "pedidos...");
+  console.log("Iniciando sincronización de", localOrders.length, "pedidos...");
 
   for (const order of localOrders) {
     await syncOrderToPocketBase(order);
   }
 
-  console.log("Sincronizaci�n completada");
+  console.log("Sincronización completada");
 }
 
 // Listener para cambios en el estado de autenticaci�n

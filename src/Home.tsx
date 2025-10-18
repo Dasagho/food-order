@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MenuGrid } from "@/components/menu-grid";
 import { OrderConfirmationModal } from "@/components/order-confirmation-modal";
 import { FloatingOrderButton } from "@/components/floating-order-button";
+import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, Settings } from "lucide-react";
 import type { OrderItem, ConfirmedOrder } from "@/types/order";
@@ -117,29 +118,32 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="fixed top-6 left-6 z-40">
-        <AuthButton />
-      </div>
+      <header className="border-b border-border bg-card px-6 py-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <h1 className="text-5xl font-semibold text-foreground">Menú</h1>
 
-      <div className="fixed top-6 right-6 z-40 flex gap-3">
-        <Button
-          size="lg"
-          onClick={() => navigate("/admin")}
-          variant="outline"
-          className="h-16 px-8 text-xl shadow-lg"
-        >
-          <Settings className="w-8 h-8 mr-3" />
-          Admin
-        </Button>
-        <Button
-          size="lg"
-          onClick={() => navigate("/pedidos")}
-          className="h-16 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
-        >
-          <ClipboardList className="w-8 h-8 mr-3" />
-          Ver Pedidos
-        </Button>
-      </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <AuthButton />
+            <Button
+              size="lg"
+              onClick={() => navigate("/admin")}
+              variant="outline"
+              className="h-14 px-6 text-lg"
+            >
+              <Settings className="w-6 h-6 mr-2" />
+              Admin
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => navigate("/pedidos")}
+              className="h-14 px-6 text-lg bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              <ClipboardList className="w-6 h-6 mr-2" />
+              Ver Pedidos
+            </Button>
+          </div>
+        </div>
+      </header>
 
       <MenuGrid
         onAddToOrder={addToOrder}
@@ -152,6 +156,8 @@ export default function Home() {
         items={orderItems}
         onClick={() => setShowConfirmation(true)}
       />
+
+      <ScrollToTopButton />
 
       <OrderConfirmationModal
         isOpen={showConfirmation}
