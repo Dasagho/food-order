@@ -17,6 +17,7 @@ export interface ConfirmedOrder {
   total: number;
   date: Date;
   status: "completado" | "en_proceso" | "cancelado";
+  paymentMethod?: "efectivo" | "tarjeta" | "bizum";
 }
 
 export type MenuCategory =

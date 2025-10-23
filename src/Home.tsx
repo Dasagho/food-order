@@ -84,8 +84,11 @@ export default function Home() {
     }
   };
 
-  const handleFinalizeOrder = async () => {
-    const total = orderItems.reduce(
+  const handleFinalizeOrder = async (
+    paymentMethod: "efectivo" | "tarjeta" | "bizum",
+    modifiedItems: OrderItem[],
+  ) => {
+    const total = modifiedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
@@ -93,10 +96,11 @@ export default function Home() {
     const confirmedOrder: ConfirmedOrder = {
       id: crypto.randomUUID(),
       orderNumber: getNextOrderNumber(),
-      items: orderItems,
+      items: modifiedItems,
       total,
       date: getMadridDate(),
       status: "completado",
+      paymentMethod, // Añadido método de pago
     };
 
     saveOrder(confirmedOrder);

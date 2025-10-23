@@ -73,6 +73,7 @@ export async function syncOrderToPocketBase(
     total: order.total,
     date: order.date.toISOString(),
     status: order.status,
+    payment_method: order.paymentMethod || "efectivo",
     user: pb.authStore.model?.id,
   };
 
@@ -127,6 +128,7 @@ export async function getOrdersFromPocketBase(): Promise<ConfirmedOrder[]> {
       items: JSON.parse(record.items),
       total: record.total,
       date: new Date(record.date),
+      paymentMethod: record.payment_method || "efectivo",
       status: record.status,
     }));
   } catch (error) {
