@@ -36,7 +36,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   >([]);
 
   useEffect(() => {
-    setCategories(getCategories());
+    getCategories().then(setCategories);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {

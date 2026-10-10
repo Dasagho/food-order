@@ -95,7 +95,7 @@ export default function Home() {
 
     const confirmedOrder: ConfirmedOrder = {
       id: crypto.randomUUID(),
-      orderNumber: getNextOrderNumber(),
+      orderNumber: await getNextOrderNumber(),
       items: modifiedItems,
       total,
       date: getMadridDate(),
@@ -103,7 +103,7 @@ export default function Home() {
       paymentMethod, // Añadido método de pago
     };
 
-    saveOrder(confirmedOrder);
+    await saveOrder(confirmedOrder);
 
     if (isOnline() && isAuthenticated()) {
       const synced = await syncOrderToPocketBase(confirmedOrder);

@@ -25,17 +25,25 @@ export function MenuGrid({
 }: MenuGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const loadedProducts = getProducts();
-
-    const sortedProducts = loadedProducts.sort((a, b) => {
-      const orderA = a.displayOrder ?? 999;
-      const orderB = b.displayOrder ?? 999;
-      return orderA - orderB;
-    });
-
-    setMenuItems(sortedProducts);
+    let cancelled = false;
+    getProducts()
+      .then((loadedProducts) => {
+        if (cancelled) return;
+        const sortedProducts = loadedProducts.sort((a, b) => {
+          const orderA = a.displayOrder ?? 999;
+          const orderB = b.displayOrder ?? 999;
+          return orderA - orderB;
+        });
+        setMenuItems(sortedProducts);
+      })
+      .catch((e) => console.error("Error al cargar productos", e))
+      .finally(() => !cancelled && setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getItemQuantity = (itemId: string, isHalf = false) => {
@@ -65,7 +73,7 @@ export function MenuGrid({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {filteredItems.length === 0 ? (
+        {!loaded ? null : filteredItems.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-2xl text-muted-foreground">
               No se encontraron platos

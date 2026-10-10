@@ -35,7 +35,7 @@ export function AuthButton() {
     const handleOnline = () => {
       setOnline(true);
       toast.success("Conexión a internet restaurada");
-      syncAllOrdersToPocketBase(getOrders());
+      getOrders().then(syncAllOrdersToPocketBase);
     };
 
     const handleOffline = () => {
@@ -66,7 +66,7 @@ export function AuthButton() {
       toast.error("Error al iniciar sesión");
       console.error(error);
     } finally {
-      syncAllOrdersToPocketBase(getOrders());
+      getOrders().then(syncAllOrdersToPocketBase);
       setLoading(false);
     }
   };

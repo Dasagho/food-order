@@ -27,8 +27,8 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
     }).format(date)
   }
 
-  const handleStatusChange = (status: ConfirmedOrder["status"]) => {
-    updateOrderStatus(order.id, status)
+  const handleStatusChange = async (status: ConfirmedOrder["status"]) => {
+    await updateOrderStatus(order.id, status)
     onUpdate()
   }
 
@@ -50,12 +50,12 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
     setEditableItems((items) => items.filter((item) => item.id !== itemId))
   }
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (editableItems.length === 0) {
       alert("El pedido debe tener al menos un artículo")
       return
     }
-    updateOrder(order.id, editableItems)
+    await updateOrder(order.id, editableItems)
     setIsEditing(false)
     onUpdate()
   }

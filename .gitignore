@@ -28,3 +28,7 @@ next-env.d.ts
 
 dev-dist/
 dist/
+
+# tests
+/test-results/
+/playwright-report/

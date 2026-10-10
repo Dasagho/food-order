@@ -108,6 +108,7 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<MenuItem | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [loaded, setLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<"manage" | "reorder">("manage");
   const navigate = useNavigate();
 
@@ -126,28 +127,32 @@ export default function AdminPage() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const loadedProducts = getProducts();
+  const loadData = async () => {
+    const [loadedProducts, loadedCategories] = await Promise.all([
+      getProducts(),
+      getCategories(),
+    ]);
     const sortedProducts = loadedProducts.sort((a, b) => {
       const orderA = a.displayOrder ?? 999;
       const orderB = b.displayOrder ?? 999;
       return orderA - orderB;
     });
     setProducts(sortedProducts);
-    setCategories(getCategories());
+    setCategories(loadedCategories);
+    setLoaded(true);
   };
 
-  const handleSaveProduct = (product: MenuItem) => {
-    saveProduct(product);
-    loadData();
+  const handleSaveProduct = async (product: MenuItem) => {
+    await saveProduct(product);
+    await loadData();
     setShowProductForm(false);
     setEditingProduct(null);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
-      deleteProduct(productId);
-      loadData();
+      await deleteProduct(productId);
+      await loadData();
     }
   };
 
@@ -166,7 +171,9 @@ export default function AdminPage() {
           displayOrder: index,
         }));
 
-        updateProductOrder(updatedItems);
+        updateProductOrder(updatedItems).catch((e) =>
+          console.error("Error al guardar el orden", e),
+        );
 
         return updatedItems;
       });
@@ -344,7 +351,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {filteredProducts.length === 0 && (
+        {loaded && filteredProducts.length === 0 && (
           <div className="text-center py-16">
             <p className="text-2xl text-muted-foreground">
               No hay productos en esta categoría

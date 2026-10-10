@@ -6,7 +6,12 @@
     "build": "vite build",
     "dev": "vite dev",
     "preview": "vite preview",
-    "deploy": "push-dir --dir=dist --branch=gh-pages"
+    "deploy": "push-dir --dir=dist --branch=gh-pages",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:upgrade": "node tests/e2e/upgrade.mjs",
+    "test:all": "vitest run && playwright test && node tests/e2e/upgrade.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -62,16 +67,23 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.1.9",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.0.4",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
     "vite": "^7.1.9",
-    "vite-plugin-pwa": "^1.0.3"
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^5.0.3"
   }
 }

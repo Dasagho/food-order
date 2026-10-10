@@ -1,97 +1,59 @@
 import type { MenuItem, Category, MenuCategory } from "@/types/order";
 import { menuItems as defaultMenuItems } from "@/data/menu-items";
+import { getBackend } from "./storage";
+import type { Backend } from "./storage/types";
 
-const PRODUCTS_KEY = "menu_products";
-const CATEGORIES_KEY = "menu_categories";
+const defaultCategories: Category[] = [
+  { id: "arroces", name: "Arroces y Paellas", displayOrder: 1 },
+  { id: "entrantes", name: "Entrantes", displayOrder: 2 },
+  { id: "principales", name: "Platos Principales", displayOrder: 3 },
+  { id: "bebidas", name: "Bebidas", displayOrder: 4 },
+  { id: "postres", name: "Postres", displayOrder: 5 },
+];
 
-// Inicializar con datos por defecto si no existen
-function initializeDefaultData() {
-  if (typeof window === "undefined") return;
-
-  const existingProducts = localStorage.getItem(PRODUCTS_KEY);
-  const existingCategories = localStorage.getItem(CATEGORIES_KEY);
-
-  if (!existingProducts) {
-    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(defaultMenuItems));
+// Backend listo y con los valores por defecto sembrados (solo la primera vez)
+let ready: Promise<Backend> | null = null;
+function backend(): Promise<Backend> {
+  if (!ready) {
+    ready = (async () => {
+      const b = await getBackend();
+      await b.seedDefaults(
+        defaultMenuItems as unknown as MenuItem[],
+        defaultCategories,
+      );
+      return b;
+    })();
+    ready.catch(() => (ready = null));
   }
-
-  if (!existingCategories) {
-    const defaultCategories: Category[] = [
-      { id: "arroces", name: "Arroces y Paellas", displayOrder: 1 },
-      { id: "entrantes", name: "Entrantes", displayOrder: 2 },
-      { id: "principales", name: "Platos Principales", displayOrder: 3 },
-      { id: "bebidas", name: "Bebidas", displayOrder: 4 },
-      { id: "postres", name: "Postres", displayOrder: 5 },
-    ];
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
-  }
+  return ready;
 }
 
 // Productos
-export function getProducts(): MenuItem[] {
-  if (typeof window === "undefined") return [];
-  initializeDefaultData();
-
-  const stored = localStorage.getItem(PRODUCTS_KEY);
-  return stored ? JSON.parse(stored) : [];
+export async function getProducts(): Promise<MenuItem[]> {
+  return (await backend()).listProducts();
 }
 
-export function saveProduct(product: MenuItem): void {
-  if (typeof window === "undefined") return;
-
-  const products = getProducts();
-  const existingIndex = products.findIndex((p) => p.id === product.id);
-
-  if (existingIndex >= 0) {
-    products[existingIndex] = product;
-  } else {
-    products.push(product);
-  }
-
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+export async function saveProduct(product: MenuItem): Promise<void> {
+  await (await backend()).upsertProduct(product);
 }
 
-export function deleteProduct(productId: string): void {
-  if (typeof window === "undefined") return;
-
-  const products = getProducts();
-  const filtered = products.filter((p) => p.id !== productId);
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(filtered));
+export async function deleteProduct(productId: string): Promise<void> {
+  await (await backend()).removeProduct(productId);
 }
 
-export function updateProductOrder(products: MenuItem[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+export async function updateProductOrder(products: MenuItem[]): Promise<void> {
+  await (await backend()).replaceProducts(products);
 }
 
 // Categorías
-export function getCategories(): Category[] {
-  if (typeof window === "undefined") return [];
-  initializeDefaultData();
-
-  const stored = localStorage.getItem(CATEGORIES_KEY);
-  return stored ? JSON.parse(stored) : [];
+export async function getCategories(): Promise<Category[]> {
+  return (await backend()).listCategories();
 }
 
-export function saveCategory(category: Category): void {
-  if (typeof window === "undefined") return;
-
-  const categories = getCategories();
-  const existingIndex = categories.findIndex((c) => c.id === category.id);
-
-  if (existingIndex >= 0) {
-    categories[existingIndex] = category;
-  } else {
-    categories.push(category);
-  }
-
-  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+export async function saveCategory(category: Category): Promise<void> {
+  await (await backend()).upsertCategory(category);
 }
 
-export function deleteCategory(categoryId: MenuCategory): void {
-  if (typeof window === "undefined") return;
-
-  const categories = getCategories();
-  const filtered = categories.filter((c) => c.id !== categoryId);
-  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(filtered));
+export async function deleteCategory(categoryId: MenuCategory): Promise<void> {
+  await (await backend()).removeCategory(categoryId);
 }

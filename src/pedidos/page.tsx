@@ -23,9 +23,13 @@ export default function PedidosPage() {
     getTodayInMadrid(),
   );
   const [showSummary, setShowSummary] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {
-    setOrders(getOrders());
+    getOrders()
+      .then(setOrders)
+      .catch((e) => console.error("Error al cargar pedidos", e))
+      .finally(() => setLoaded(true));
   }, []);
 
   const availableDates = useMemo(() => {
@@ -44,10 +48,10 @@ export default function PedidosPage() {
     });
   }, [orders, selectedDate]);
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este pedido?")) {
-      deleteOrder(orderId);
-      setOrders(getOrders());
+      await deleteOrder(orderId);
+      setOrders(await getOrders());
     }
   };
 
@@ -173,7 +177,7 @@ export default function PedidosPage() {
             orders={filteredOrders}
             selectedDate={toMadridDateString(selectedDate)}
           />
-        ) : filteredOrders.length === 0 ? (
+        ) : !loaded ? null : filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="bg-muted rounded-full p-6">
@@ -291,8 +295,8 @@ export default function PedidosPage() {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          onUpdate={() => {
-            setOrders(getOrders());
+          onUpdate={async () => {
+            setOrders(await getOrders());
             setSelectedOrder(null);
           }}
         />
