@@ -86,7 +86,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 h-12 w-12">
+          <Button variant="ghost" size="icon" aria-label="Cerrar ventana" onClick={onClose} className="shrink-0 h-12 w-12">
             <X className="w-8 h-8" />
           </Button>
         </div>
@@ -126,6 +126,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Quitar una unidad de ${item.name}`}
                           onClick={() => handleQuantityChange(item.id, -1)}
                           className="h-12 w-12 hover:bg-background"
                         >
@@ -135,6 +136,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label={`Añadir una unidad de ${item.name}`}
                           onClick={() => handleQuantityChange(item.id, 1)}
                           className="h-12 w-12 hover:bg-background"
                         >
@@ -144,6 +146,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Quitar ${item.name} del pedido`}
                         onClick={() => handleRemoveItem(item.id)}
                         className="h-12 w-12 text-destructive hover:bg-destructive/10"
                       >

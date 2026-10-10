@@ -25,7 +25,7 @@ export function AuthButton() {
     setUser(getCurrentUser());
     setOnline(isOnline());
 
-    // Listener para cambios de autenticaci�n
+    // Listener para cambios de autenticación
     onAuthChange((isAuth) => {
       setAuthenticated(isAuth);
       setUser(getCurrentUser());

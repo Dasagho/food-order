@@ -132,6 +132,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Quitar uno de ${item.name} (completa)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -149,6 +150,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Añadir uno más de ${item.name} (completa)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -187,6 +189,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Quitar uno de ${item.name} (media)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -204,6 +207,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Añadir uno más de ${item.name} (media)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -244,6 +248,7 @@ export function MenuGrid({
                             <Button
                               variant="outline"
                               size="icon"
+                              aria-label={`Quitar uno de ${item.name}`}
                               onClick={() =>
                                 onUpdateQuantity(
                                   item.id,
@@ -261,6 +266,7 @@ export function MenuGrid({
                             <Button
                               variant="outline"
                               size="icon"
+                              aria-label={`Añadir uno más de ${item.name}`}
                               onClick={() =>
                                 onUpdateQuantity(
                                   item.id,

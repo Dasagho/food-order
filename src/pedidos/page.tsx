@@ -110,6 +110,7 @@ export default function PedidosPage() {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Volver al menú"
               onClick={() => navigate("/")}
               className="shrink-0 h-14 w-14"
             >
@@ -143,6 +144,7 @@ export default function PedidosPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Volver a hoy"
                   onClick={() => setSelectedDate(getTodayInMadrid())}
                   className="h-14 w-14 shrink-0"
                   title="Volver a hoy"
@@ -278,6 +280,7 @@ export default function PedidosPage() {
                   <Button
                     variant="outline"
                     size="lg"
+                    aria-label={`Eliminar pedido #${order.orderNumber}`}
                     onClick={() => handleDeleteOrder(order.id)}
                     className="h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >

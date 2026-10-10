@@ -54,6 +54,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Cerrar formulario"
             onClick={onCancel}
             className="h-12 w-12"
           >

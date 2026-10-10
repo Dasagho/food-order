@@ -70,6 +70,7 @@ function SortableProductCard({
         <div
           {...attributes}
           {...listeners}
+          aria-label={`Arrastrar ${product.name}`}
           className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing bg-primary text-primary-foreground rounded-lg p-3 hover:bg-primary/90 transition-colors shadow-lg"
         >
           <GripVertical className="w-8 h-8" />
@@ -339,6 +340,7 @@ export default function AdminPage() {
                     <Button
                       variant="destructive"
                       size="lg"
+                      aria-label={`Eliminar ${product.name}`}
                       onClick={() => handleDeleteProduct(product.id)}
                       className="h-14 px-6"
                     >
