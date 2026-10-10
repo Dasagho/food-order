@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { toMadridDateString, formatMadridDate } from "@/lib/date-utils";
+import { toLocalDateString, formatCalendarDate } from "@/lib/date-utils";
 
 interface DatePickerProps {
   selectedDate: Date | undefined;
@@ -27,7 +27,7 @@ export function DatePicker({
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return placeholder;
-    return formatMadridDate(date, {
+    return formatCalendarDate(date, {
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -37,7 +37,7 @@ export function DatePicker({
 
   const isDateAvailable = (date: Date) => {
     if (!availableDates || availableDates.length === 0) return true;
-    const dateString = toMadridDateString(date);
+    const dateString = toLocalDateString(date);
     return availableDates.includes(dateString);
   };
 

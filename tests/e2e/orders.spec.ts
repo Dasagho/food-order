@@ -91,6 +91,44 @@ test.describe("pedidos: flujo crítico", () => {
     await expect(page.getByText("€4.50").first()).toBeVisible();
   });
 
+  test("el resumen del día NO cuenta los pedidos cancelados", async ({ page }) => {
+    await createOrderViaUI(page); // 4.50 -> se cancelará
+    await createOrderViaUI(page, { dish: "Arroz de marisco" }); // 4.50 -> cuenta
+    await page.goto("/pedidos");
+    await page.getByText("Pedido #1").locator("xpath=ancestor::div[contains(@class,'p-6')][1]")
+      .getByRole("button", { name: /Editar Pedido/ }).click();
+    await page.getByRole("button", { name: "Cancelado" }).click();
+    await page.getByRole("button", { name: "Ver Resumen del Día" }).click();
+    const stat = (label: string) =>
+      page.getByText(label, { exact: true }).locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]").locator("p");
+    await expect(stat("Total Pedidos")).toHaveText("1");
+    await expect(stat("Total Ventas")).toHaveText("€4.50");
+    await expect(page.getByText("Paella Valenciana")).toHaveCount(0);
+  });
+
+  test("ración completa y media del mismo plato se editan por separado", async ({ page }) => {
+    await page.goto("/");
+    const card = page.locator("div.overflow-hidden", { hasText: "Paella Valenciana" }).first();
+    await card.getByRole("button", { name: /Ración Completa/ }).click();
+    await card.getByRole("button", { name: /Media Ración/ }).click();
+    await page.getByRole("button", { name: /Ver pedido/ }).click();
+    await page.getByRole("button", { name: /Confirmar Pedido/ }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0); // guardado terminado
+    await page.goto("/pedidos");
+    await expect(page.getByText("1x Paella Valenciana (Media)")).toBeVisible();
+
+    await page.getByRole("button", { name: /Editar Pedido/ }).click();
+    await page.getByRole("button", { name: /Editar Pedido/ }).last().click();
+    // primera fila = ración completa: +1
+    await page.locator("svg.lucide-plus").first().locator("xpath=ancestor::button").click();
+    await page.getByRole("button", { name: /Guardar Cambios/ }).click();
+    await expect(page.getByRole("button", { name: /Guardar Cambios/ })).toHaveCount(0);
+
+    await expect(page.getByText("2x Paella Valenciana", { exact: true })).toBeVisible();
+    await expect(page.getByText("1x Paella Valenciana (Media)")).toBeVisible();
+    await expect(page.getByText("€12.00").first()).toBeVisible(); // 2×4.50 + 1×3.00
+  });
+
   test("sin conexión se puede seguir creando pedidos", async ({ page, context }) => {
     await page.goto("/");
     await context.setOffline(true);

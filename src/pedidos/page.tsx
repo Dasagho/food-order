@@ -8,8 +8,10 @@ import { OrderDetailModal } from "@/components/order-detail-modal";
 import { DailySalesSummary } from "@/components/daily-sales-summary";
 import { DatePicker } from "@/components/date-picker";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   toMadridDateString,
+  toLocalDateString,
   formatMadridDate,
   getTodayInMadrid,
 } from "@/lib/date-utils";
@@ -28,7 +30,10 @@ export default function PedidosPage() {
   useEffect(() => {
     getOrders()
       .then(setOrders)
-      .catch((e) => console.error("Error al cargar pedidos", e))
+      .catch((e) => {
+        console.error("Error al cargar pedidos", e);
+        toast.error("No se pudieron cargar los pedidos");
+      })
       .finally(() => setLoaded(true));
   }, []);
 
@@ -41,7 +46,7 @@ export default function PedidosPage() {
 
   const filteredOrders = useMemo(() => {
     if (!selectedDate) return orders;
-    const selectedDateString = toMadridDateString(selectedDate);
+    const selectedDateString = toLocalDateString(selectedDate);
     return orders.filter((order) => {
       const orderDate = toMadridDateString(new Date(order.date));
       return orderDate === selectedDateString;
@@ -50,8 +55,13 @@ export default function PedidosPage() {
 
   const handleDeleteOrder = async (orderId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este pedido?")) {
-      await deleteOrder(orderId);
-      setOrders(await getOrders());
+      try {
+        await deleteOrder(orderId);
+        setOrders(await getOrders());
+      } catch (error) {
+        console.error("Error al eliminar el pedido", error);
+        toast.error("No se pudo eliminar el pedido");
+      }
     }
   };
 
@@ -177,7 +187,7 @@ export default function PedidosPage() {
         {showSummary && selectedDate ? (
           <DailySalesSummary
             orders={filteredOrders}
-            selectedDate={toMadridDateString(selectedDate)}
+            selectedDate={toLocalDateString(selectedDate)}
           />
         ) : !loaded ? null : filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
@@ -299,7 +309,12 @@ export default function PedidosPage() {
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
           onUpdate={async () => {
-            setOrders(await getOrders());
+            try {
+              setOrders(await getOrders());
+            } catch (error) {
+              console.error("Error al recargar los pedidos", error);
+              toast.error("No se pudieron cargar los pedidos");
+            }
             setSelectedOrder(null);
           }}
         />

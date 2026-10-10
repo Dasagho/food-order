@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -125,7 +126,11 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    loadData();
+    loadData().catch((e) => {
+      console.error("Error al cargar el menú", e);
+      toast.error("No se pudo cargar el menú");
+      setLoaded(true);
+    });
   }, []);
 
   const loadData = async () => {
@@ -144,16 +149,31 @@ export default function AdminPage() {
   };
 
   const handleSaveProduct = async (product: MenuItem) => {
-    await saveProduct(product);
-    await loadData();
+    try {
+      await saveProduct(product);
+    } catch (error) {
+      // El formulario sigue abierto con lo escrito
+      console.error("Error al guardar el producto", error);
+      toast.error("No se pudo guardar el producto");
+      return;
+    }
+    await loadData().catch((e) => {
+      console.error("Error al recargar el menú", e);
+      toast.error("No se pudo recargar el menú");
+    });
     setShowProductForm(false);
     setEditingProduct(null);
   };
 
   const handleDeleteProduct = async (productId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
-      await deleteProduct(productId);
-      await loadData();
+      try {
+        await deleteProduct(productId);
+        await loadData();
+      } catch (error) {
+        console.error("Error al eliminar el producto", error);
+        toast.error("No se pudo eliminar el producto");
+      }
     }
   };
 
@@ -172,9 +192,10 @@ export default function AdminPage() {
           displayOrder: index,
         }));
 
-        updateProductOrder(updatedItems).catch((e) =>
-          console.error("Error al guardar el orden", e),
-        );
+        updateProductOrder(updatedItems).catch((e) => {
+          console.error("Error al guardar el orden", e);
+          toast.error("No se pudo guardar el nuevo orden");
+        });
 
         return updatedItems;
       });

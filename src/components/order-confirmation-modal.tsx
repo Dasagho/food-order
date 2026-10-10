@@ -13,6 +13,11 @@ import { useEffect, useState } from "react";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 
+const sameLine = (a: OrderItem, b: OrderItem) =>
+  a.id === b.id && !!a.isHalfPortion === !!b.isHalfPortion;
+const lineKey = (item: OrderItem) =>
+  `${item.id}-${item.isHalfPortion ? "media" : "completa"}`;
+
 interface OrderConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,10 +51,13 @@ export function OrderConfirmationModal({
   );
   const itemCount = editableItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const updateItemPrice = (itemId: string, newPrice: number) => {
+  // Ración completa y media del mismo plato son líneas distintas: misma id, distinto isHalfPortion
+  const updateItemPrice = (target: OrderItem, newPrice: number) => {
     setEditableItems((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, price: Math.max(0, newPrice) } : item,
+        sameLine(item, target)
+          ? { ...item, price: Math.max(0, newPrice) }
+          : item,
       ),
     );
   };
@@ -104,7 +112,7 @@ export function OrderConfirmationModal({
               {/* Scroll only the list, not the whole modal */}
               <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
                 {editableItems.map((item) => (
-                  <Card key={item.id} className="p-3 bg-background">
+                  <Card key={lineKey(item)} className="p-3 bg-background">
                     <div className="flex items-center gap-3">
                       <img
                         src={item.image || "/placeholder.svg"}
@@ -114,6 +122,7 @@ export function OrderConfirmationModal({
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-foreground text-xl mb-1 truncate">
                           {item.name}
+                          {item.isHalfPortion && " (Media)"}
                         </h4>
                         <p className="text-muted-foreground text-base">
                           Cantidad: {item.quantity}
@@ -128,7 +137,7 @@ export function OrderConfirmationModal({
                             value={Number.isFinite(item.price) ? item.price : 0}
                             onChange={(e) =>
                               updateItemPrice(
-                                item.id,
+                                item,
                                 Number.parseFloat(e.target.value) || 0,
                               )
                             }

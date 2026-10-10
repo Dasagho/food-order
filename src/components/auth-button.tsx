@@ -35,7 +35,9 @@ export function AuthButton() {
     const handleOnline = () => {
       setOnline(true);
       toast.success("Conexión a internet restaurada");
-      getOrders().then(syncAllOrdersToPocketBase);
+      getOrders()
+        .then(syncAllOrdersToPocketBase)
+        .catch((e) => console.error("Error al sincronizar", e));
     };
 
     const handleOffline = () => {
@@ -66,7 +68,9 @@ export function AuthButton() {
       toast.error("Error al iniciar sesión");
       console.error(error);
     } finally {
-      getOrders().then(syncAllOrdersToPocketBase);
+      getOrders()
+        .then(syncAllOrdersToPocketBase)
+        .catch((e) => console.error("Error al sincronizar", e));
       setLoading(false);
     }
   };

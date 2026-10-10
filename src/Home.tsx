@@ -8,7 +8,7 @@ import { ClipboardList, Settings } from "lucide-react";
 import type { OrderItem, ConfirmedOrder } from "@/types/order";
 import { saveOrder, getNextOrderNumber } from "@/lib/order-storage";
 import { useNavigate } from "react-router-dom";
-import { getMadridDate } from "@/lib/date-utils";
+import { getOrderTimestamp } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
   syncOrderToPocketBase,
@@ -93,17 +93,26 @@ export default function Home() {
       0,
     );
 
-    const confirmedOrder: ConfirmedOrder = {
-      id: crypto.randomUUID(),
-      orderNumber: await getNextOrderNumber(),
-      items: modifiedItems,
-      total,
-      date: getMadridDate(),
-      status: "completado",
-      paymentMethod, // Añadido método de pago
-    };
-
-    await saveOrder(confirmedOrder);
+    let confirmedOrder: ConfirmedOrder;
+    try {
+      confirmedOrder = {
+        id: crypto.randomUUID(),
+        orderNumber: await getNextOrderNumber(),
+        items: modifiedItems,
+        total,
+        date: getOrderTimestamp(),
+        status: "completado",
+        paymentMethod, // Añadido método de pago
+      };
+      await saveOrder(confirmedOrder);
+    } catch (error) {
+      // No se vacía el carrito ni se cierra el modal: el pedido no se pierde
+      console.error("Error al guardar el pedido", error);
+      toast.error(
+        "No se pudo guardar el pedido. Sigue en pantalla: inténtalo de nuevo.",
+      );
+      return;
+    }
 
     if (isOnline() && isAuthenticated()) {
       const synced = await syncOrderToPocketBase(confirmedOrder);

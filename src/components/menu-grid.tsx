@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,10 @@ export function MenuGrid({
         });
         setMenuItems(sortedProducts);
       })
-      .catch((e) => console.error("Error al cargar productos", e))
+      .catch((e) => {
+        console.error("Error al cargar productos", e);
+        toast.error("No se pudo cargar el menú");
+      })
       .finally(() => !cancelled && setLoaded(true));
     return () => {
       cancelled = true;
