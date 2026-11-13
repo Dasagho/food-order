@@ -7,8 +7,10 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 ARG VITE_BUILD_SHA=unknown
 ENV VITE_BUILD_SHA=${VITE_BUILD_SHA}
-ARG VITE_POCKETBASE_URL=https://pocketbase.dsaleh.es
-ENV VITE_POCKETBASE_URL=${VITE_POCKETBASE_URL}
+# URL base del backend food-order-api (se incrusta al compilar). Ej.: https://api.midominio.es
+# Vacía = mismo origen (hay que enrutar /v1 hacia el backend delante de este contenedor).
+ARG VITE_API_URL=
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
