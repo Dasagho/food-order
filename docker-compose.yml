@@ -1,0 +1,185 @@
+# food-order: frontend (nginx) + backend (food-order-api) con un único punto de entrada.
+#
+# INICIO RÁPIDO
+#   1) cp .env.example .env            y rellena la sección "Docker Compose" (ALLOWED_EMAILS, MS_CLIENT_ID, PUBLIC_URL…)
+#   2) ./docker/init-secrets.sh        crea ./secrets/ (JWT_SECRET aleatorio; pide el secreto de Azure y las claves S3,
+#                                      estas últimas pueden quedar vacías mientras STORAGE_DRIVER=fs)
+#   3) docker compose up -d --build    la app queda en http://127.0.0.1:8080 (WEB_BIND / WEB_PORT)
+#
+# ARQUITECTURA
+#   navegador ──► web (nginx, :8080) ──/v1/*──► api (Node, :3000, red interna) ──► volumen /data (SQLite + imágenes)
+#   - El navegador solo habla con `web`; la API no publica puertos ni es alcanzable desde el host. Mismo origen: sin CORS.
+#   - `web` y `api` se hablan por una red `internal` aislada. `api` tiene además salida a internet (login con Microsoft).
+#     OJO: `web` también conserva salida, porque Docker no permite publicar puertos desde una red `internal`.
+#     Si necesitas bloquearla, hazlo con reglas de firewall del host (cadena DOCKER-USER).
+#   - TLS lo termina un proxy delante (Traefik, Caddy, Cloudflare…): apunta ese proxy a WEB_BIND:WEB_PORT.
+#
+# IMÁGENES DE PRODUCTOS (SPEC §6.6)  —  el navegador las pide SIEMPRE a /media/<clave>.webp, en el mismo origen que la app
+#   (sin CORS ni cambios de CSP). La API solo escribe en el bucket (POST /v1/uploads) y devuelve {url:"/media/<clave>"}.
+#   Quién sirve /media/*, solo GET/HEAD, se decide con MEDIA_UPSTREAM (se fija al CONSTRUIR la imagen web):
+#
+#   Modo (a) — por el nginx del contenedor `web` (por defecto):
+#       navegador ──/media/<clave>──► web (nginx, caché de proxy en /tmp) ──► MEDIA_UPSTREAM/<clave>
+#     - Arranque rápido, STORAGE_DRIVER=fs:  MEDIA_UPSTREAM=http://api:3000/media   (la API sirve GET /media/:key; solo desarrollo)
+#     - Producción con RustFS:  STORAGE_DRIVER=s3 y MEDIA_UPSTREAM=http://rustfs:9000/<bucket>/<prefijo sin barra final>,
+#       p. ej. http://rustfs:9000/food-order/images  (= S3_ENDPOINT/S3_BUCKET/S3_KEY_PREFIX sin la barra final).
+#       `web` y `api` deben poder resolver `rustfs`: descomenta la red externa `rustfs` (abajo) y los `networks` de web/api.
+#       La consola y el endpoint S3 de RustFS NO se publican: solo llega a ellos este nginx, y solo por GET/HEAD de /media.
+#   Modo (b) — enrutado por el reverse proxy de delante (Traefik, Caddy…):
+#       el propio proxy manda /media/* al bucket (solo GET/HEAD) y el resto a `web`. Deja MEDIA_UPSTREAM vacío
+#       (MEDIA_UPSTREAM=) y `web` responderá 404 a /media/ en lugar de servirlo. `web` ya no necesita la red de RustFS.
+#     Con STORAGE_DRIVER=s3 `api` sí necesita llegar a S3_ENDPOINT para escribir (red externa `rustfs`, o su URL pública).
+#
+# OPERACIÓN
+#   Copia de seguridad:  docker compose --profile tools run --rm tools dist/cli/backup.js
+#   Cargar menú inicial: docker compose --profile tools run --rm tools dist/cli/seed.js     (solo instalación nueva)
+#   Importar PocketBase: docker compose --profile tools run --rm -v "$PWD/orders.json:/tmp/orders.json:ro" \
+#                          tools dist/cli/import-pocketbase.js /tmp/orders.json
+#   Logs:                docker compose logs -f
+#
+# La API se construye desde API_CONTEXT (por defecto ../food-order-api). Con una API ya desplegada en otro dominio:
+#   WEB_API_URL=https://api.midominio.es docker compose build web && docker compose up -d --no-deps web
+
+name: food-order
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Endurecimiento común: sistema de ficheros de solo lectura, sin capabilities, sin escalada de privilegios.
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  init: true
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  web:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${WEB_API_URL:-}            # vacío = mismo origen (nginx hace proxy a /v1)
+        API_UPSTREAM: http://api:3000
+        # Destino de /media/<clave> (ver «IMÁGENES DE PRODUCTOS»). Vacío = modo (b): lo enruta el proxy de delante.
+        # Se declara con ${VAR-valor} (sin «:»): MEDIA_UPSTREAM= vacío se respeta; sin definir vale el valor por defecto.
+        MEDIA_UPSTREAM: ${MEDIA_UPSTREAM-http://api:3000/media}
+        VITE_BUILD_SHA: ${BUILD_SHA:-local}
+        VITE_DEV_LOGIN: ${WEB_DEV_LOGIN:-}        # "1" = botón de acceso de desarrollo. NO en producción
+        VITE_ARABIC_DIGITS: ${WEB_ARABIC_DIGITS:-}
+    image: ${WEB_IMAGE:-food-order-web}:${TAG:-latest}
+    ports:
+      # Por defecto solo en loopback: expón el puerto al exterior únicamente a través de tu proxy TLS.
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    tmpfs:
+      # nginx escribe aquí TODO: buffers de subida (hasta 16 MB) y la caché de proxy de /media (max_size 20m)
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge, internal]       # modo (a) con RustFS: añade `rustfs` (ver la red externa de abajo)
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M               # la tmpfs de /tmp (64m) cuenta contra el límite de memoria del contenedor
+          pids: 64
+    # Ejemplo con Traefik (ajusta al nombre de tu red/proxy y descomenta la red `proxy` abajo):
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.food-order.rule=Host(`app.example.com`)
+    #   - traefik.http.routers.food-order.entrypoints=websecure
+    #   - traefik.http.routers.food-order.tls.certresolver=letsencrypt
+    #   - traefik.http.services.food-order.loadbalancer.server.port=8080
+
+  api:
+    <<: *hardening
+    build:
+      context: ${API_CONTEXT:-../food-order-api}
+    image: ${API_IMAGE:-food-order-api}:${TAG:-latest}
+    environment:
+      NODE_ENV: ${API_NODE_ENV:-production}
+      PORT: "3000"
+      DATA_DIR: /data
+      # Misma URL pública que ve el navegador (la URI de redirección de Azure es ${PUBLIC_URL}/v1/auth/microsoft/callback)
+      PUBLIC_BASE_URL: ${PUBLIC_URL:-http://localhost:8080}
+      FRONTEND_ORIGINS: ${PUBLIC_URL:-http://localhost:8080}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:?Define ALLOWED_EMAILS en .env (correos Microsoft con acceso)}
+      BUSINESS_TZ: ${BUSINESS_TZ:-Europe/Madrid}
+      MS_TENANT: ${MS_TENANT:-common}
+      MS_CLIENT_ID: ${MS_CLIENT_ID:-}
+      MS_CLIENT_SECRET_FILE: /run/secrets/ms_client_secret
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      TRUST_PROXY: "1"                            # nginx es el único salto delante de la API
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_DEV_BYPASS: ${AUTH_DEV_BYPASS:-}       # solo desarrollo (con API_NODE_ENV=development)
+      # Imágenes (SPEC §6.6): fs = disco local (/data/uploads, la API sirve GET /media/:key; desarrollo) | s3 = RustFS
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-fs}
+      IMAGES_PUBLIC_PATH: ${IMAGES_PUBLIC_PATH:-/media}   # prefijo público de las URL devueltas; debe coincidir con el de nginx
+      S3_ENDPOINT: ${S3_ENDPOINT:-}               # p. ej. http://rustfs:9000 (solo con STORAGE_DRIVER=s3)
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_KEY_PREFIX: ${S3_KEY_PREFIX:-images/}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      S3_ACCESS_KEY_ID_FILE: /run/secrets/s3_access_key_id
+      S3_SECRET_ACCESS_KEY_FILE: /run/secrets/s3_secret_access_key
+    secrets: [ms_client_secret, jwt_secret, s3_access_key_id, s3_secret_access_key]
+    volumes:
+      - data:/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    expose: ["3000"]
+    networks: [internal, egress]     # con STORAGE_DRIVER=s3 en RustFS del Swarm: añade `rustfs`
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 256M
+          pids: 128
+    stop_grace_period: 20s
+
+  # Comandos de mantenimiento (seed, backup, import). No se arranca con `up`: solo con --profile tools.
+  tools:
+    extends:
+      service: api
+    profiles: ["tools"]
+    restart: "no"
+    entrypoint: ["node"]
+    command: ["dist/cli/backup.js"]
+    depends_on: {}
+    expose: []
+    healthcheck:
+      disable: true
+    networks: [internal]
+
+networks:
+  edge: {}            # red de `web`, con el puerto publicado
+  internal:
+    internal: true    # sin salida a internet ni acceso desde el host: aquí hablan web y api
+  egress: {}          # salida a internet para api (login con Microsoft)
+  # proxy:            # descomenta si tu proxy TLS vive en otra red de Docker
+  #   external: true
+  #   name: traefik_proxy
+  # rustfs:           # red del servicio RustFS del Swarm (overlay «attachable»). Descomenta esto y añade `rustfs`
+  #   external: true  # a los `networks` de `web` (modo a) y de `api` (STORAGE_DRIVER=s3). Ajusta `name` al de tu stack.
+  #   name: rustfs_default
+
+volumes:
+  data:
+    name: food-order-data
+
+secrets:
+  ms_client_secret:
+    file: ${MS_CLIENT_SECRET_PATH:-./secrets/ms_client_secret}
+  jwt_secret:
+    file: ${JWT_SECRET_PATH:-./secrets/jwt_secret}
+  # Credenciales del bucket de imágenes (solo con STORAGE_DRIVER=s3; vacías con fs). Las crea ./docker/init-secrets.sh
+  s3_access_key_id:
+    file: ${S3_ACCESS_KEY_ID_PATH:-./secrets/s3_access_key_id}
+  s3_secret_access_key:
+    file: ${S3_SECRET_ACCESS_KEY_PATH:-./secrets/s3_secret_access_key}
