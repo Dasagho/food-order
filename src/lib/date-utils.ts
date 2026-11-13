@@ -2,8 +2,8 @@
  * Utilidades de fechas. Regla de oro:
  *  - Un PEDIDO se guarda con el instante real (`new Date()`), que es absoluto.
  *  - El día de negocio de ese instante se calcula SIEMPRE en Europe/Madrid.
- *  - Un DÍA DE CALENDARIO (lo que se elige en el selector) es un Date a medianoche
- *    local; se compara con `toLocalDateString`, nunca reconvirtiéndolo a Madrid.
+ *  - Un DÍA DE CALENDARIO (lo que se elige en el selector de Ventas) es un texto YYYY-MM-DD;
+ *    nunca se reconvierte a Madrid ni se mezcla con zonas horarias.
  */
 
 const MADRID = "Europe/Madrid";
@@ -33,37 +33,53 @@ export function toMadridDateString(date: Date): string {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
-/** Día (YYYY-MM-DD) de un día de calendario (Date a medianoche local), p. ej. el del selector. */
-export function toLocalDateString(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+// ───────────── utilidades para pantallas (rediseño) ─────────────
+const parts24 = new Intl.DateTimeFormat("en-US", {
+  timeZone: MADRID,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+function partsAt(ms: number) {
+  const o: Record<string, number> = {};
+  parts24.formatToParts(new Date(ms)).forEach((p) => {
+    if (p.type !== "literal") o[p.type] = Number(p.value);
+  });
+  return o;
 }
 
-/** Formatea un instante para la UI en hora de Madrid. */
-export function formatMadridDate(
-  date: Date,
-  options?: Intl.DateTimeFormatOptions,
-): string {
-  return new Intl.DateTimeFormat("es-ES", {
-    timeZone: MADRID,
-    ...options,
-  }).format(date);
+/** Hoy (YYYY-MM-DD) según el calendario de Madrid. */
+export const todayMadrid = (): string => toMadridDateString(new Date());
+
+/** Suma días a un día YYYY-MM-DD (sin zonas: calendario puro). */
+export function shiftDay(day: string, n: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
-/** Formatea un día de calendario (Date a medianoche local) sin desplazamientos de zona. */
-export function formatCalendarDate(
-  date: Date,
-  options?: Intl.DateTimeFormatOptions,
-): string {
-  return new Intl.DateTimeFormat("es-ES", options).format(date);
+/** Hora local de Madrid (HH:MM) de un instante. */
+export function hhmmMadrid(date: Date): string {
+  const p = partsAt(date.getTime());
+  return `${pad(p.hour)}:${pad(p.minute)}`;
 }
 
-/** Compara si dos instantes caen en el mismo día de Madrid. */
-export function isSameMadridDay(date1: Date, date2: Date): boolean {
-  return toMadridDateString(date1) === toMadridDateString(date2);
-}
-
-/** Hoy (a medianoche local) según el calendario de Madrid. */
-export function getTodayInMadrid(): Date {
-  const { year, month, day } = ymd(madridParts.formatToParts(new Date()));
-  return new Date(year, month - 1, day);
+/** «2026-11-10» + «13:05» en hora de Madrid → ISO UTC (resuelve el cambio de hora de verano). */
+export function madridToUtc(day: string, hhmm: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const [h, mi] = hhmm.split(":").map(Number);
+  const offsetAt = (ms: number) => {
+    const p = partsAt(ms);
+    return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000;
+  };
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const off = offsetAt(guess);
+  let res = guess - off;
+  const off2 = offsetAt(res);
+  if (off2 !== off) res = guess - off2;
+  return new Date(res).toISOString();
 }
