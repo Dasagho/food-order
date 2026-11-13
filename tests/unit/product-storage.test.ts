@@ -141,21 +141,35 @@ describe("catálogo: edición (requiere conexión)", () => {
     await expect(products.reorderProducts(["4", "3"])).rejects.toMatchObject({ status: 409, code: "reorder_mismatch" });
   });
 
-  it("uploadImage sube el fichero a /uploads y devuelve la URL", async () => {
+  it("uploadImage sube el fichero a /v1/uploads y devuelve la `url` relativa /media/<uuid>.webp (no la clave ni una URL absoluta)", async () => {
     const { products, api } = await boot();
-    const url = await products.uploadImage(new File([new Uint8Array([1, 2, 3])], "a.png", { type: "image/png" }));
-    expect(url).toMatch(/^\/v1\/uploads\/img-/);
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const url = await products.uploadImage(new File([png], "a.png", { type: "image/png" }));
+    expect(url).toMatch(/^\/media\/[0-9a-f-]{36}\.webp$/);
     expect(api.log.find((l) => l.path === "/v1/uploads")!.method).toBe("POST");
+    expect(api.media.has(url.slice("/media/".length))).toBe(true); // el servidor guardó la imagen bajo esa clave
   });
 
-  it("imgSrc antepone VITE_API_URL solo a las rutas /v1/ (las del despliegue no cambian)", async () => {
+  it("una subida de un fichero que no es imagen da el error del servidor por code (415)", async () => {
+    const { products } = await boot();
+    await expect(
+      products.uploadImage(new File([new Uint8Array([1, 2, 3])], "a.png", { type: "image/png" })),
+    ).rejects.toMatchObject({ status: 415, code: "unsupported_media_type" });
+  });
+
+  it("imgSrc: toda ruta que empieza por / es del origen de la app y NO se prefija con VITE_API_URL", async () => {
     vi.stubEnv("VITE_API_URL", "https://api.ejemplo.es");
     vi.resetModules();
-    const { imgSrc } = await import("@/lib/config");
-    expect(imgSrc("/v1/uploads/a.png")).toBe("https://api.ejemplo.es/v1/uploads/a.png");
+    const { imgSrc, apiUrl } = await import("@/lib/config");
+    expect(apiUrl("/v1/products")).toBe("https://api.ejemplo.es/v1/products"); // la API sí va a su dominio
+    const id = "0b7c5c1e-3f0a-4f6e-9a54-6f1d2f6a8c11";
+    expect(imgSrc(`/media/${id}.webp`)).toBe(`/media/${id}.webp`);
+    expect(imgSrc("/media/legacy/paella-valenciana.webp")).toBe("/media/legacy/paella-valenciana.webp");
     expect(imgSrc("/paella.jpg")).toBe("/paella.jpg");
+    expect(imgSrc("/v1/uploads/a.png")).toBe("/v1/uploads/a.png"); // ya no se reescribe ninguna ruta heredada
     expect(imgSrc("https://x/y.png")).toBe("https://x/y.png");
     expect(imgSrc("")).toBe("/placeholder.svg");
+    expect(imgSrc(null)).toBe("/placeholder.svg");
     vi.unstubAllEnvs();
   });
 });

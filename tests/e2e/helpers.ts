@@ -1,9 +1,12 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { deflateSync, crc32 } from "node:zlib";
 
 /** E2E_BACKEND=real: los tests corren contra food-order-api (vía tests/real-api/control.mjs) en vez del fake. */
 export const REAL = process.env.E2E_BACKEND === "real";
 
 export const API = `http://localhost:${process.env.E2E_API_PORT ?? 4174}`;
+/** Origen de la app (vite preview). Las imágenes /media/<clave> se piden SIEMPRE a este origen, nunca al de la API. */
+export const APP = `http://localhost:${process.env.E2E_PORT ?? 4173}`;
 
 /** Control del backend falso (tests/fake-api/server.ts). */
 export const server = {
@@ -159,3 +162,56 @@ export async function idbDump(page: Page, store: string): Promise<any[]> {
     store,
   );
 }
+
+/**
+ * PNG válido (RGB, 1000 de ancho) de aproximadamente `bytes` bytes. Va con deflate «stored» (nivel 0): el fichero
+ * pesa lo mismo que los píxeles, así se controla el tamaño sin depender de la compresión.
+ */
+export function bigPng(bytes: number): Buffer {
+  const width = 1000;
+  const height = Math.ceil(bytes / (width * 3));
+  const raw = Buffer.alloc((width * 3 + 1) * height); // filtro «None» (0) en cada fila; píxeles negros
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8); // 8 bits, RGB
+  // nivel 0 (sin compresión): el PNG pesa lo mismo que los píxeles, así se controla el tamaño del fichero
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw, { level: 0 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** PNG de 1x1 píxel válido (rojo). */
+export const PNG_1PX = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** Sube una imagen por la API (multipart, como otro dispositivo) y devuelve {url, key}. */
+export async function apiUpload(file: Buffer, name = "foto.png", type = "image/png") {
+  const login = await fetch(`${API}/v1/auth/dev-login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  const { accessToken } = (await login.json()) as { accessToken: string };
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(file)], { type }), name);
+  const res = await fetch(`${API}/v1/uploads`, { method: "POST", headers: { authorization: `Bearer ${accessToken}` }, body: form });
+  return { status: res.status, body: (await res.json()) as { url: string; key: string } };
+}
+
+/** ¿La imagen terminó de cargar y tiene píxeles? */
+export const imgLoaded = (loc: ReturnType<Page["locator"]>) =>
+  loc.evaluate((el) => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0);

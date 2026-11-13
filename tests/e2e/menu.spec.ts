@@ -1,4 +1,4 @@
-import { test, expect, login, server } from "./helpers";
+import { test, expect, login, server, PNG_1PX } from "./helpers";
 
 const dialog = (page: import("@playwright/test").Page) => page.getByRole("dialog").last();
 
@@ -22,7 +22,7 @@ test.describe("Menú: gestión contra el servidor", () => {
     await dialog(page).getByLabel(/Nombre \(árabe\)/).fill("عجة");
     await dialog(page).getByLabel(/Precio ración/).fill("3.25");
     await dialog(page).getByLabel("¿Cómo se vende?").selectOption("unidades");
-    await dialog(page).getByLabel("Elegir foto").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgo=", "base64") });
+    await dialog(page).getByLabel("Elegir foto").setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG_1PX });
     await expect(dialog(page).getByText("Foto lista.")).toBeVisible();
     await dialog(page).getByRole("button", { name: "Crear" }).click();
     await expect(page.locator(".arow .title", { hasText: "Tortilla de prueba" })).toBeVisible();
@@ -32,7 +32,7 @@ test.describe("Menú: gestión contra el servidor", () => {
     await expect(page.getByRole("heading", { name: "Tortilla de prueba" })).toBeVisible();
     const p = (await server.catalog()).products.find((p: any) => p.name === "Tortilla de prueba");
     expect(p).toMatchObject({ price: 3.25, names: { ar: "عجة" }, halfPortionPrice: null });
-    expect(p.imageUrl).toMatch(/\/v1\/uploads\//);
+    expect(p.imageUrl).toMatch(/^\/media\/[\w-]+\.webp$/); // ruta relativa al origen de la app (SPEC §6.6)
   });
 
   test("la validación sale al abandonar el campo (nombre, importe con 2 decimales como máximo)", async ({ page }) => {
