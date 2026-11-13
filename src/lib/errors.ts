@@ -1,5 +1,6 @@
 import { ApiError } from "@/lib/api/client";
 import { t } from "@/i18n/core";
+import { MAX_UPLOAD_MB } from "@/lib/config";
 
 /**
  * Textos por `code` (el servidor no localiza los mensajes, SPEC §3): se traducen en el cliente y
@@ -33,7 +34,9 @@ export function errorText(e: { code?: string } | null | undefined): string {
     case "number_taken":
       return t("Ese número ya está en uso ese día.");
     case "payload_too_large":
-      return t("La foto pesa más de 5 MB.");
+      return t("La foto pesa más de {n} MB.", { n: MAX_UPLOAD_MB });
+    case "storage_unavailable":
+      return t("No se pueden guardar fotos ahora mismo. Prueba más tarde.");
     case "unsupported_media_type":
       return t("Solo se admiten fotos JPG, PNG o WebP.");
     case "rate_limited":

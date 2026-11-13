@@ -5,12 +5,10 @@ import { useToast } from "@/ui/toast";
 import { useI18n } from "@/i18n";
 import { useCatalog } from "@/state/catalog";
 import { saveProduct, uploadImage } from "@/lib/product-storage";
-import { imgSrc } from "@/lib/config";
+import { imgSrc, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/config";
 import { errorMessage } from "@/lib/errors";
 import { amountOk, parseAmount } from "@/features/shared/format";
 import type { MenuItem } from "@/types/order";
-
-const MAX_BYTES = 5 * 1024 * 1024;
 
 /** Alta/edición de un plato: validación al salir de cada campo, máximo 2 decimales, subida de foto con vista previa. */
 export function ProductForm({ product: p, defaultCategory, onClose }: { product: MenuItem | null; defaultCategory?: string; onClose: () => void }) {
@@ -26,7 +24,7 @@ export function ProductForm({ product: p, defaultCategory, onClose }: { product:
   const [available, setAvailable] = useState(p ? p.available !== false : true);
   const [image, setImage] = useState(p?.image ?? "");
   const [uploading, setUploading] = useState(false);
-  const [imgHelp, setImgHelp] = useState(t("Máximo 5 MB."));
+  const [imgHelp, setImgHelp] = useState(t("Máximo {n} MB.", { n: MAX_UPLOAD_MB }));
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [formErr, setFormErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -49,8 +47,8 @@ export function ProductForm({ product: p, defaultCategory, onClose }: { product:
 
   const onFile = async (f: File | undefined, input: HTMLInputElement) => {
     if (!f) return;
-    if (f.size > MAX_BYTES) {
-      setErrs((e) => ({ ...e, img: t("La foto pesa más de 5 MB.") }));
+    if (f.size > MAX_UPLOAD_BYTES) {
+      setErrs((e) => ({ ...e, img: t("La foto pesa más de {n} MB.", { n: MAX_UPLOAD_MB }) }));
       input.value = "";
       return;
     }
@@ -62,7 +60,7 @@ export function ProductForm({ product: p, defaultCategory, onClose }: { product:
       setImgHelp(t("Foto lista."));
     } catch (er) {
       setErrs((e) => ({ ...e, img: errorMessage(er) }));
-      setImgHelp(t("Máximo 5 MB."));
+      setImgHelp(t("Máximo {n} MB.", { n: MAX_UPLOAD_MB }));
     }
     setUploading(false);
   };
@@ -173,7 +171,7 @@ export function ProductForm({ product: p, defaultCategory, onClose }: { product:
         <span className="label">
           {t("Foto del plato")} <span className="req" aria-hidden="true">*</span>
         </span>
-        {image && <img className="preview" id="f-prev" alt={t("Vista previa de la foto")} src={imgSrc(image)} />}
+        {image && <img className="preview" id="f-prev" decoding="async" alt={t("Vista previa de la foto")} src={imgSrc(image)} />}
         <input className="input" id="f-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label={t("Elegir foto")} aria-describedby="e-img h-img" onChange={(e) => onFile(e.target.files?.[0], e.target)} />
         <span className="help" id="h-img">
           {imgHelp}

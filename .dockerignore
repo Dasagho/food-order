@@ -1,0 +1,27 @@
+# El contexto de build solo necesita el código de la app y la config de nginx.
+# Todo lo demás queda fuera: más rápido, caché estable y nada sensible dentro de la imagen.
+.git
+.gitignore
+node_modules
+dist
+dev-dist
+test-results
+playwright-report
+tests
+*.tsbuildinfo
+
+# Variables y secretos: nunca dentro de la imagen (el build es hermético; se pasa solo por ARG)
+.env
+.env.*
+secrets
+
+# Docker y documentación
+Dockerfile
+docker-compose*.yml
+.dockerignore
+docker
+*.md
+
+# Configuración de test
+vitest.config.ts
+playwright.config.ts

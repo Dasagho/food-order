@@ -9,7 +9,7 @@
  * control (que el backend real no tiene, por diseño):
  *   POST /__reset                     -> backend nuevo (carpeta de datos nueva) con el catálogo TEST_SEED
  *                                        cargado por POST /v1/import/catalog
- *   POST /__down {"down":true|false}  -> responde 503 a todo salvo /__*
+ *   POST /__down {"down":true|false}  -> responde 503 a todo salvo /__* y /media/*
  *   POST /__expire                    -> los access tokens emitidos hasta ahora pasan a dar 401 (el refresh
  *                                        es el del backend real)
  *   GET  /__orders                    -> todos los pedidos (incluidos borrados) leídos con GET /v1/orders
@@ -72,9 +72,12 @@ async function startBackend() {
       PORT: String(BACKEND_PORT),
       DATA_DIR: dataDir,
       AUTH_DEV_BYPASS: "1",
+      // imágenes en disco (SPEC §6.6): la propia API sirve GET /media/:key; el preview de Vite lo reenvía aquí
+      STORAGE_DRIVER: "fs",
+      IMAGES_PUBLIC_PATH: "/media",
       ALLOWED_EMAILS: EMAIL,
       FRONTEND_ORIGINS: ORIGINS,
-      // las imágenes subidas se piden a través de este proxy (mismo puerto que el "fake")
+      // origen público de la API (redirecciones de login); las imágenes son rutas relativas /media/<clave>
       PUBLIC_BASE_URL: `http://localhost:${CONTROL_PORT}`,
       AUTH_RATE_LIMIT_MAX: "100000",
       LOG_LEVEL: "error",
@@ -222,7 +225,8 @@ createServer(async (req, res) => {
       // el preflight lo responde el backend real (CORS de FRONTEND_ORIGINS), no este proxy
       return proxy(req, res, Buffer.alloc(0));
     }
-    if (down) return send(503, { code: "internal_error", message: "caído (test)" });
+    // las imágenes (/media) las sirve el bucket, no la API: siguen disponibles aunque la API esté "caída"
+    if (down && !url.startsWith("/media/")) return send(503, { code: "internal_error", message: "caído (test)" });
     const bearer = /^Bearer (.+)$/.exec(String(req.headers.authorization ?? ""))?.[1];
     if (bearer && expired.has(bearer)) {
       // CORS del backend real para que el navegador pueda leer el 401

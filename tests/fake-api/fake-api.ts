@@ -17,7 +17,24 @@ export interface FakeRequest {
 export interface FakeResponse {
   status: number;
   body?: any;
+  /** Respuesta binaria (GET /media/<clave>): el transporte la envía tal cual, con ese content-type. */
+  raw?: { type: string; bytes: Uint8Array };
 }
+
+/** Máximo de la foto de entrada (SPEC §6.6): 15 MB; el backend real la reduce a 800 px y la convierte a WebP. */
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+/** Tipo por los bytes iniciales (como el real): JPEG, PNG o WebP; null si no es ninguno. */
+function sniffImage(b: Uint8Array): string | null {
+  const at = (i: number, ...v: number[]) => v.every((x, k) => b[i + k] === x);
+  if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
+  if (at(0, 0x89, 0x50, 0x4e, 0x47)) return "image/png";
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image/webp";
+  return null;
+}
+
+/** Clave válida de /media (misma regla que el nginx de la imagen): <uuid>.webp o legacy/<nombre>.webp. */
+const MEDIA_KEY = /^[A-Za-z0-9][A-Za-z0-9._/-]*\.webp$/;
 
 type Json = any;
 
@@ -123,6 +140,8 @@ export class FakeApi {
   private refreshTokens = new Set<string>();
   private codes = new Map<string, string>(); // code -> challenge
   private counter = 0;
+  /** Imágenes "subidas" (clave -> bytes originales; el fake no recodifica a WebP). */
+  media = new Map<string, { type: string; bytes: Uint8Array }>();
   private clock: () => number;
 
   constructor(seed: FakeSeed = {}, clock: () => number = () => Date.now()) {
@@ -292,7 +311,13 @@ export class FakeApi {
       this.refreshTokens.delete(body.refreshToken);
       return { status: 204 };
     }
-    if (path.startsWith("/v1/uploads/") && m === "GET") return { status: 200, body: "" };
+    // Entrega pública de imágenes, fuera de /v1 y sin autenticación (SPEC §6.6: con STORAGE_DRIVER=fs la sirve la API)
+    if (path.startsWith("/media/") && (m === "GET" || m === "HEAD")) {
+      const key = decodeURIComponent(path.slice("/media/".length));
+      const hit = MEDIA_KEY.test(key) ? this.media.get(key) : undefined;
+      if (!hit) throw new Reject(404, "not_found", "Imagen no encontrada");
+      return { status: 200, raw: hit };
+    }
 
     this.authorize(req);
     if (path === "/v1/auth/me") return { status: 200, body: { email: "dueno@ejemplo.es", name: "Dueño" } };
@@ -361,7 +386,17 @@ export class FakeApi {
       }
     }
     if (path === "/v1/uploads" && m === "POST") {
-      return { status: 201, body: { url: `/v1/uploads/img-${++this.counter}.png` } };
+      const file = body?.file;
+      if (!file || typeof file.arrayBuffer !== "function")
+        throw new Reject(400, "validation_error", "Falta el campo file", { field: "file" });
+      if (file.size > MAX_UPLOAD_BYTES) throw new Reject(413, "payload_too_large", "La foto pesa más de 15 MB");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const type = sniffImage(bytes);
+      if (!type) throw new Reject(415, "unsupported_media_type", "Solo se admiten fotos JPG, PNG o WebP");
+      // SPEC §6.6: clave <uuid v4>.webp y URL relativa al origen de la app
+      const key = `${crypto.randomUUID()}.webp`;
+      this.media.set(key, { type, bytes });
+      return { status: 201, body: { url: `/media/${key}`, key } };
     }
 
     // ── pedidos ──

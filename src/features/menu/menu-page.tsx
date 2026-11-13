@@ -153,7 +153,7 @@ export default function MenuPage() {
             {list.map((p, i) => (
               <li key={p.id} className={`arow ${p.available ? "" : "off"}`} data-product={p.id}>
                 <div className="thumb">
-                  <img src={imgSrc(p.image)} alt="" width="80" height="80" loading="lazy" />
+                  <img src={imgSrc(p.image)} alt="" width="80" height="80" loading="lazy" decoding="async" />
                 </div>
                 <div className="main">
                   <span className="title">{dn(p)}</span>

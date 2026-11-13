@@ -69,6 +69,7 @@ export function installServer(api: FakeApi = new FakeApi(TEST_SEED)) {
       ctl.dropResponses--;
       throw new TypeError("Failed to fetch");
     }
+    if (res.raw) return new Response(res.raw.bytes as BodyInit, { status: res.status, headers: { "content-type": res.raw.type } });
     return new Response(res.body === undefined ? null : JSON.stringify(res.body), {
       status: res.status,
       headers: { "content-type": "application/json" },

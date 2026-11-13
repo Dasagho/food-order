@@ -40,7 +40,13 @@ export default defineConfig({
     {
       command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
       url: `http://localhost:${PORT}`,
-      env: { VITE_API_URL: `http://localhost:${API_PORT}`, VITE_DEV_LOGIN: "1" },
+      // /media/<clave> es del origen de la app (producción: nginx -> bucket); aquí `vite preview` lo reenvía
+      // al fake / backend real (DEV_MEDIA_TARGET), que sirve las imágenes subidas.
+      env: {
+        VITE_API_URL: `http://localhost:${API_PORT}`,
+        VITE_DEV_LOGIN: "1",
+        DEV_MEDIA_TARGET: `http://localhost:${API_PORT}`,
+      },
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
     },

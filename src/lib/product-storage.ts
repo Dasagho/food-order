@@ -120,7 +120,7 @@ export async function reorderProducts(ids: string[]): Promise<void> {
   await refreshCatalog();
 }
 
-/** Sube una imagen y devuelve la URL a guardar en el producto. */
+/** Sube una imagen (la API la reduce y la guarda en el bucket) y devuelve la `url` relativa (`/media/<clave>`) a guardar en el producto. */
 export async function uploadImage(file: File): Promise<string> {
   return (await api.uploads.upload(file)).url;
 }

@@ -86,7 +86,7 @@ test.describe("contrato con el backend real", () => {
     await expect(page.locator(".arow .title", { hasText: "Plato nuevo" })).toBeVisible(); // recargado
   });
 
-  test("subida de imagen: la URL devuelta se resuelve desde el origen de la app y la imagen se ve", async ({ page }) => {
+  test("subida de imagen: devuelve {url:/media/<uuid>.webp, key}, se sirve en el origen de la app y la imagen se ve", async ({ page }) => {
     await login(page);
     await page.getByRole("link", { name: "Menú" }).click();
     await page.getByRole("button", { name: "+ Plato nuevo" }).click();
@@ -100,13 +100,17 @@ test.describe("contrato con el backend real", () => {
     const preview = dlg.locator("img.preview");
     await expect.poll(() => loaded(preview)).toBe(true); // vista previa
     const url = (await preview.getAttribute("src"))!;
-    // la URL devuelta es absoluta (PUBLIC_BASE_URL) y la imagen es pública, inmutable y legible entre orígenes
-    expect(url).toMatch(/^https?:\/\/.*\/v1\/uploads\/[\w-]+\.png$/);
-    const img = await fetch(url);
-    expect(img.status).toBe(200);
-    expect(img.headers.get("content-type")).toBe("image/png");
-    expect(img.headers.get("cache-control")).toContain("immutable");
-    expect(Buffer.from(await img.arrayBuffer()).equals(PNG_1PX)).toBe(true);
+    // la URL es RELATIVA (mismo origen que la app); la imagen es pública, WebP e inmutable (SPEC §6.6)
+    expect(url).toMatch(/^\/media\/[0-9a-f-]{36}\.webp$/);
+    for (const base of [`http://localhost:${process.env.E2E_PORT ?? 4173}`, API]) {
+      const img = await fetch(base + url); // sin Authorization
+      expect(img.status).toBe(200);
+      expect(img.headers.get("content-type")).toBe("image/webp");
+      expect(img.headers.get("cache-control")).toContain("immutable");
+      const bytes = Buffer.from(await img.arrayBuffer());
+      expect(bytes.subarray(0, 4).toString()).toBe("RIFF");
+      expect(bytes.subarray(8, 12).toString()).toBe("WEBP");
+    }
 
     await dlg.getByRole("button", { name: "Crear" }).click();
     const row = page.locator(".arow", { hasText: "Plato con foto" }).first();

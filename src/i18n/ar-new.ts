@@ -3,6 +3,7 @@
  * Ninguna ha sido revisada por un hablante nativo: todas llevan `// REVISAR (hablante nativo)`.
  */
 export const AR_NEW: Record<string, string> = {
+  "No se pueden guardar fotos ahora mismo. Prueba más tarde.": "مش قادرين نحفظ الصور دلوقتي. جرّب بعد شوية.", // REVISAR (hablante nativo)
   "¿Descartar el pedido {n}?": "تتجاهل الطلب {n}؟", // REVISAR (hablante nativo)
   "Aún no ha llegado al servidor. Se borra de este equipo y no queda rastro. No se puede deshacer.": "لسه ماوصلش للسيرفر. هيتمسح من الجهاز ده ومش هيفضل منه أي أثر. مينفعش ترجع فيها.", // REVISAR (hablante nativo)
   "Pedido descartado.": "الطلب اتتجاهل.", // REVISAR (hablante nativo)

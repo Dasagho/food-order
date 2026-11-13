@@ -53,7 +53,7 @@ test.describe("sin conexión (service worker real)", () => {
       const out: string[] = [];
       for (const k of await caches.keys())
         for (const r of await (await caches.open(k)).keys())
-          if (/\/v1\//.test(r.url) && !/\/v1\/uploads\//.test(r.url)) out.push(r.url);
+          if (/\/v1\//.test(r.url)) out.push(r.url);
       return out;
     });
     expect(cachedApi).toEqual([]);
