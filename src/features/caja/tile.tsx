@@ -43,7 +43,7 @@ export function Tile({
   return (
     <li className={`tile ${p.available ? "" : "off"}`}>
       <div className="media">
-        <img src={imgSrc(p.image)} alt="" width="400" height="300" loading="lazy" />
+        <img src={imgSrc(p.image)} alt="" width="400" height="300" loading="lazy" decoding="async" />
       </div>
       <div className="tile-body">
         <h3 className="tile-name">{nm}</h3>

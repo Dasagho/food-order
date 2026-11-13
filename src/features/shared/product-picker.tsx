@@ -75,7 +75,7 @@ export function ProductPicker({
             return (
               <li key={p.id} className={`pick ${p.available ? "" : "off"}`}>
                 <div className="thumb">
-                  <img src={imgSrc(p.image)} alt="" width="64" height="64" loading="lazy" />
+                  <img src={imgSrc(p.image)} alt="" width="64" height="64" loading="lazy" decoding="async" />
                 </div>
                 <div className="main">
                   <span className="title">{nm}</span>
