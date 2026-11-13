@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Servidor de desarrollo (`vite dev`) y `vite preview` (usado por los e2e): con VITE_API_URL vacío, /v1 se
+// reenvía a DEV_API_TARGET; las imágenes (/media/<clave>, mismo origen que la app en producción, SPEC §6.6) a
+// DEV_MEDIA_TARGET, que por defecto es el mismo destino que /v1 (la API sirve GET /media/:key con STORAGE_DRIVER=fs).
+const apiTarget = process.env.DEV_API_TARGET ?? "http://localhost:3000";
+const proxy = {
+  "/v1": apiTarget,
+  "/media": process.env.DEV_MEDIA_TARGET ?? apiTarget,
+};
+
 export default defineConfig({
   plugins: [
     react(),
@@ -41,17 +50,20 @@ export default defineConfig({
         // Las fuentes locales (woff2) se precachean junto con el código: la Caja se ve igual sin red
         globPatterns: ["**/*.{js,css,html,woff2}"],
         navigateFallback: "/index.html",
-        // La API y el login nunca pasan por el fallback de la SPA ni por la caché
-        navigateFallbackDenylist: [/^\/v1\//, /^\/auth/],
+        // La API, el login y las imágenes (/media) nunca pasan por el fallback de la SPA ni por la caché de navegación
+        navigateFallbackDenylist: [/^\/v1\//, /^\/auth/, /^\/media\//],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === "image",
             handler: "CacheFirst",
             options: {
               cacheName: "images",
-              // las imágenes subidas viven en el origen de la API (sin CORS => respuesta opaca)
-              cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              // /media/<uuid>.webp es del mismo origen que la app (SPEC §6.6) y las claves son inmutables:
+              // CacheFirst sirve la imagen sin red. Solo 200: una respuesta opaca (0) de otro origen pesa
+              // ~7 MB de cuota en Chrome y las fotos ya no vienen de otro origen.
+              cacheableResponse: { statuses: [200] },
+              // ~50 productos x ~40 KB (WebP de 800 px) + las rutas heredadas: 100 entradas son ~4 MB de sobra
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30, purgeOnQuotaError: true },
             },
           },
           {
@@ -62,7 +74,7 @@ export default defineConfig({
             options: { cacheName: "static-assets" },
           },
           // El servidor es la fuente de verdad: la API (/v1/*) y el login (/auth*) NO se cachean
-          // (las imágenes subidas de /v1/uploads/ ya las cubre la regla de imágenes de arriba).
+          // (las imágenes de /media/ ya las cubre la regla de imágenes de arriba, que va primero).
           {
             urlPattern: ({ url }) =>
               url.pathname.startsWith("/v1/") || url.pathname.startsWith("/auth"),
@@ -80,10 +92,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src/"),
     },
   },
-  server: {
-    // Desarrollo: con VITE_API_URL vacío, /v1 se reenvía al backend (DEV_API_TARGET)
-    proxy: {
-      "/v1": process.env.DEV_API_TARGET ?? "http://localhost:3000",
-    },
-  },
+  server: { proxy },
+  preview: { proxy },
 });
