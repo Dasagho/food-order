@@ -59,7 +59,7 @@ export const api = {
     upload: (file: File | Blob) => {
       const form = new FormData();
       form.append("file", file);
-      return request<{ url: string }>("POST", "/v1/uploads", { form, timeoutMs: UPLOAD_TIMEOUT_MS });
+      return request<{ url: string; key: string }>("POST", "/v1/uploads", { form, timeoutMs: UPLOAD_TIMEOUT_MS });
     },
   },
 
