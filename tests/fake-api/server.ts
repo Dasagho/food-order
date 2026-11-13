@@ -4,10 +4,11 @@
  *   node tests/fake-api/server.ts            (puerto FAKE_API_PORT, por defecto 4174)
  * Control desde los tests (sin autenticación):
  *   POST /__reset                     -> estado inicial (menú de prueba)
- *   POST /__down {"down":true|false}  -> responde 503 a todo salvo /__*
+ *   POST /__down {"down":true|false}  -> responde 503 a todo salvo /__* y /media/* (las imágenes las sirve el bucket)
  *   POST /__expire                    -> caduca los access tokens
  *   POST /__code {"challenge"}        -> {code} (simula el callback de Microsoft)
  *   GET  /__orders                    -> pedidos del servidor
+ * Además: POST /v1/uploads (multipart) -> 201 {url:"/media/<uuid>.webp", key} y GET /media/<clave> (público).
  */
 import { createServer } from "node:http";
 import { FakeApi, TEST_SEED } from "./fake-api.ts";
@@ -39,7 +40,9 @@ createServer(async (req, res) => {
     const url = req.url ?? "/";
     const raw = await readBody(req);
     const ctype = String(req.headers["content-type"] ?? "");
-    const json = raw.length && ctype.includes("json") ? JSON.parse(raw.toString("utf8")) : undefined;
+    let json = raw.length && ctype.includes("json") ? JSON.parse(raw.toString("utf8")) : undefined;
+    if (ctype.startsWith("multipart/form-data"))
+      json = { file: (await new Response(new Uint8Array(raw), { headers: { "content-type": ctype } }).formData()).get("file") };
 
     if (url.startsWith("/__")) {
       if (url === "/__reset") {
@@ -61,11 +64,16 @@ createServer(async (req, res) => {
       if (url === "/__log") return send(200, api.log);
       return send(404, { code: "not_found", message: "?" });
     }
-    if (down) return send(503, { code: "internal_error", message: "caído (test)" });
+    // Las imágenes (/media) las sirve el bucket, no la API: siguen disponibles aunque la API esté "caída"
+    if (down && !url.startsWith("/media/")) return send(503, { code: "internal_error", message: "caído (test)" });
 
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries(req.headers)) headers[k.toLowerCase()] = String(v);
     const r = await api.handle({ method: req.method ?? "GET", url, headers, body: json });
+    if (r.raw) {
+      res.writeHead(r.status, { ...CORS, "content-type": r.raw.type, "cache-control": "public, max-age=31536000, immutable" });
+      return res.end(req.method === "HEAD" ? undefined : r.raw.bytes);
+    }
     return send(r.status, r.body);
   } catch (e) {
     console.error(e);
