@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,12 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
   >([]);
 
   useEffect(() => {
-    setCategories(getCategories());
+    getCategories()
+      .then(setCategories)
+      .catch((e) => {
+        console.error("Error al cargar categorías", e);
+        toast.error("No se pudieron cargar las categorías");
+      });
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,6 +60,7 @@ export function ProductForm({ product, onSave, onCancel }: ProductFormProps) {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Cerrar formulario"
             onClick={onCancel}
             className="h-12 w-12"
           >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -70,6 +71,7 @@ function SortableProductCard({
         <div
           {...attributes}
           {...listeners}
+          aria-label={`Arrastrar ${product.name}`}
           className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing bg-primary text-primary-foreground rounded-lg p-3 hover:bg-primary/90 transition-colors shadow-lg"
         >
           <GripVertical className="w-8 h-8" />
@@ -108,6 +110,7 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<MenuItem | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [loaded, setLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<"manage" | "reorder">("manage");
   const navigate = useNavigate();
 
@@ -123,31 +126,54 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    loadData();
+    loadData().catch((e) => {
+      console.error("Error al cargar el menú", e);
+      toast.error("No se pudo cargar el menú");
+      setLoaded(true);
+    });
   }, []);
 
-  const loadData = () => {
-    const loadedProducts = getProducts();
+  const loadData = async () => {
+    const [loadedProducts, loadedCategories] = await Promise.all([
+      getProducts(),
+      getCategories(),
+    ]);
     const sortedProducts = loadedProducts.sort((a, b) => {
       const orderA = a.displayOrder ?? 999;
       const orderB = b.displayOrder ?? 999;
       return orderA - orderB;
     });
     setProducts(sortedProducts);
-    setCategories(getCategories());
+    setCategories(loadedCategories);
+    setLoaded(true);
   };
 
-  const handleSaveProduct = (product: MenuItem) => {
-    saveProduct(product);
-    loadData();
+  const handleSaveProduct = async (product: MenuItem) => {
+    try {
+      await saveProduct(product);
+    } catch (error) {
+      // El formulario sigue abierto con lo escrito
+      console.error("Error al guardar el producto", error);
+      toast.error("No se pudo guardar el producto");
+      return;
+    }
+    await loadData().catch((e) => {
+      console.error("Error al recargar el menú", e);
+      toast.error("No se pudo recargar el menú");
+    });
     setShowProductForm(false);
     setEditingProduct(null);
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este producto?")) {
-      deleteProduct(productId);
-      loadData();
+      try {
+        await deleteProduct(productId);
+        await loadData();
+      } catch (error) {
+        console.error("Error al eliminar el producto", error);
+        toast.error("No se pudo eliminar el producto");
+      }
     }
   };
 
@@ -166,7 +192,10 @@ export default function AdminPage() {
           displayOrder: index,
         }));
 
-        updateProductOrder(updatedItems);
+        updateProductOrder(updatedItems).catch((e) => {
+          console.error("Error al guardar el orden", e);
+          toast.error("No se pudo guardar el nuevo orden");
+        });
 
         return updatedItems;
       });
@@ -332,6 +361,7 @@ export default function AdminPage() {
                     <Button
                       variant="destructive"
                       size="lg"
+                      aria-label={`Eliminar ${product.name}`}
                       onClick={() => handleDeleteProduct(product.id)}
                       className="h-14 px-6"
                     >
@@ -344,7 +374,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {filteredProducts.length === 0 && (
+        {loaded && filteredProducts.length === 0 && (
           <div className="text-center py-16">
             <p className="text-2xl text-muted-foreground">
               No hay productos en esta categoría

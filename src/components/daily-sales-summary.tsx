@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { TrendingUp, Package, DollarSign } from "lucide-react";
 import type { ConfirmedOrder } from "@/types/order";
+import { formatCalendarDate } from "@/lib/date-utils";
 
 interface DailySalesSummaryProps {
   orders: ConfirmedOrder[];
@@ -8,9 +9,12 @@ interface DailySalesSummaryProps {
 }
 
 export function DailySalesSummary({
-  orders,
+  orders: allOrders,
   selectedDate,
 }: DailySalesSummaryProps) {
+  // Los pedidos cancelados no son ventas: no suman en ninguna cifra
+  const orders = allOrders.filter((order) => order.status !== "cancelado");
+
   // Calcular resumen de ventas
   const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
   const totalOrders = orders.length;
@@ -39,14 +43,16 @@ export function DailySalesSummary({
     (a, b) => b.total - a.total,
   );
 
+  // selectedDate es un día de calendario "YYYY-MM-DD": se interpreta como día local
+  // (new Date("YYYY-MM-DD") lo trataría como UTC y podría mostrar el día anterior)
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("es-ES", {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return formatCalendarDate(new Date(year, month - 1, day), {
       weekday: "long",
       day: "numeric",
       month: "long",
       year: "numeric",
-    }).format(date);
+    });
   };
 
   if (orders.length === 0) {

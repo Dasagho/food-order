@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +26,28 @@ export function MenuGrid({
 }: MenuGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const loadedProducts = getProducts();
-
-    const sortedProducts = loadedProducts.sort((a, b) => {
-      const orderA = a.displayOrder ?? 999;
-      const orderB = b.displayOrder ?? 999;
-      return orderA - orderB;
-    });
-
-    setMenuItems(sortedProducts);
+    let cancelled = false;
+    getProducts()
+      .then((loadedProducts) => {
+        if (cancelled) return;
+        const sortedProducts = loadedProducts.sort((a, b) => {
+          const orderA = a.displayOrder ?? 999;
+          const orderB = b.displayOrder ?? 999;
+          return orderA - orderB;
+        });
+        setMenuItems(sortedProducts);
+      })
+      .catch((e) => {
+        console.error("Error al cargar productos", e);
+        toast.error("No se pudo cargar el menú");
+      })
+      .finally(() => !cancelled && setLoaded(true));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getItemQuantity = (itemId: string, isHalf = false) => {
@@ -65,7 +77,7 @@ export function MenuGrid({
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {filteredItems.length === 0 ? (
+        {!loaded ? null : filteredItems.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-2xl text-muted-foreground">
               No se encontraron platos
@@ -124,6 +136,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Quitar uno de ${item.name} (completa)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -141,6 +154,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Añadir uno más de ${item.name} (completa)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -179,6 +193,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Quitar uno de ${item.name} (media)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -196,6 +211,7 @@ export function MenuGrid({
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Añadir uno más de ${item.name} (media)`}
                                 onClick={() =>
                                   onUpdateQuantity(
                                     item.id,
@@ -236,6 +252,7 @@ export function MenuGrid({
                             <Button
                               variant="outline"
                               size="icon"
+                              aria-label={`Quitar uno de ${item.name}`}
                               onClick={() =>
                                 onUpdateQuantity(
                                   item.id,
@@ -253,6 +270,7 @@ export function MenuGrid({
                             <Button
                               variant="outline"
                               size="icon"
+                              aria-label={`Añadir uno más de ${item.name}`}
                               onClick={() =>
                                 onUpdateQuantity(
                                   item.id,

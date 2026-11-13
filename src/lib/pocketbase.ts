@@ -20,7 +20,7 @@ export function isOnline(): boolean {
   return navigator.onLine;
 }
 
-// Autenticaci�n OAuth con Google
+// Autenticación OAuth con Google
 export async function loginWithOAuth(
   provider: "google" | "github" | "microsoft" = "google",
 ) {
@@ -28,7 +28,6 @@ export async function loginWithOAuth(
 
   try {
     const authData = await pb.collection("users").authWithOAuth2({ provider });
-    console.log("Usuario autenticado:", authData.record.email);
     return authData;
   } catch (error) {
     console.error("Error en autenticación OAuth:", error);
@@ -42,7 +41,7 @@ export function logout() {
   pb.authStore.clear();
 }
 
-// Verificar si el usuario est� autenticado
+// Verificar si el usuario está autenticado
 export function isAuthenticated(): boolean {
   const pb = getPocketBase();
   return pb.authStore.isValid;
@@ -59,7 +58,6 @@ export async function syncOrderToPocketBase(
   order: ConfirmedOrder,
 ): Promise<boolean> {
   if (!isOnline() || !isAuthenticated()) {
-    console.log("No se puede sincronizar: sin conexión o no autenticado");
     return false;
   }
 
@@ -95,10 +93,8 @@ export async function syncOrderToPocketBase(
     let record;
     if (existingRecord) {
       record = await collection.update(existingRecord.id, payload);
-      console.log("Pedido actualizado en PocketBase:", record.id);
     } else {
       record = await collection.create(payload);
-      console.log("Pedido creado en PocketBase:", record.id);
     }
 
     return true;
@@ -142,20 +138,17 @@ export async function syncAllOrdersToPocketBase(
   localOrders: ConfirmedOrder[],
 ): Promise<void> {
   if (!isOnline() || !isAuthenticated()) {
-    console.log("No se puede sincronizar: sin conexión o no autenticado");
     return;
   }
 
-  console.log("Iniciando sincronización de", localOrders.length, "pedidos...");
 
   for (const order of localOrders) {
     await syncOrderToPocketBase(order);
   }
 
-  console.log("Sincronización completada");
 }
 
-// Listener para cambios en el estado de autenticaci�n
+// Listener para cambios en el estado de autenticación
 export function onAuthChange(callback: (isAuth: boolean) => void) {
   const pb = getPocketBase();
   pb.authStore.onChange(() => {

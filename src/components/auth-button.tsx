@@ -25,7 +25,7 @@ export function AuthButton() {
     setUser(getCurrentUser());
     setOnline(isOnline());
 
-    // Listener para cambios de autenticaci�n
+    // Listener para cambios de autenticación
     onAuthChange((isAuth) => {
       setAuthenticated(isAuth);
       setUser(getCurrentUser());
@@ -35,7 +35,9 @@ export function AuthButton() {
     const handleOnline = () => {
       setOnline(true);
       toast.success("Conexión a internet restaurada");
-      syncAllOrdersToPocketBase(getOrders());
+      getOrders()
+        .then(syncAllOrdersToPocketBase)
+        .catch((e) => console.error("Error al sincronizar", e));
     };
 
     const handleOffline = () => {
@@ -66,7 +68,9 @@ export function AuthButton() {
       toast.error("Error al iniciar sesión");
       console.error(error);
     } finally {
-      syncAllOrdersToPocketBase(getOrders());
+      getOrders()
+        .then(syncAllOrdersToPocketBase)
+        .catch((e) => console.error("Error al sincronizar", e));
       setLoading(false);
     }
   };

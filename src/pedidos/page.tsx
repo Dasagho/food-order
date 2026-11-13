@@ -8,8 +8,10 @@ import { OrderDetailModal } from "@/components/order-detail-modal";
 import { DailySalesSummary } from "@/components/daily-sales-summary";
 import { DatePicker } from "@/components/date-picker";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   toMadridDateString,
+  toLocalDateString,
   formatMadridDate,
   getTodayInMadrid,
 } from "@/lib/date-utils";
@@ -23,9 +25,16 @@ export default function PedidosPage() {
     getTodayInMadrid(),
   );
   const [showSummary, setShowSummary] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {
-    setOrders(getOrders());
+    getOrders()
+      .then(setOrders)
+      .catch((e) => {
+        console.error("Error al cargar pedidos", e);
+        toast.error("No se pudieron cargar los pedidos");
+      })
+      .finally(() => setLoaded(true));
   }, []);
 
   const availableDates = useMemo(() => {
@@ -37,17 +46,22 @@ export default function PedidosPage() {
 
   const filteredOrders = useMemo(() => {
     if (!selectedDate) return orders;
-    const selectedDateString = toMadridDateString(selectedDate);
+    const selectedDateString = toLocalDateString(selectedDate);
     return orders.filter((order) => {
       const orderDate = toMadridDateString(new Date(order.date));
       return orderDate === selectedDateString;
     });
   }, [orders, selectedDate]);
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     if (confirm("¿Estás seguro de que quieres eliminar este pedido?")) {
-      deleteOrder(orderId);
-      setOrders(getOrders());
+      try {
+        await deleteOrder(orderId);
+        setOrders(await getOrders());
+      } catch (error) {
+        console.error("Error al eliminar el pedido", error);
+        toast.error("No se pudo eliminar el pedido");
+      }
     }
   };
 
@@ -106,6 +120,7 @@ export default function PedidosPage() {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Volver al menú"
               onClick={() => navigate("/")}
               className="shrink-0 h-14 w-14"
             >
@@ -139,6 +154,7 @@ export default function PedidosPage() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Volver a hoy"
                   onClick={() => setSelectedDate(getTodayInMadrid())}
                   className="h-14 w-14 shrink-0"
                   title="Volver a hoy"
@@ -171,9 +187,9 @@ export default function PedidosPage() {
         {showSummary && selectedDate ? (
           <DailySalesSummary
             orders={filteredOrders}
-            selectedDate={toMadridDateString(selectedDate)}
+            selectedDate={toLocalDateString(selectedDate)}
           />
-        ) : filteredOrders.length === 0 ? (
+        ) : !loaded ? null : filteredOrders.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="bg-muted rounded-full p-6">
@@ -274,6 +290,7 @@ export default function PedidosPage() {
                   <Button
                     variant="outline"
                     size="lg"
+                    aria-label={`Eliminar pedido #${order.orderNumber}`}
                     onClick={() => handleDeleteOrder(order.id)}
                     className="h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
@@ -291,8 +308,13 @@ export default function PedidosPage() {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
-          onUpdate={() => {
-            setOrders(getOrders());
+          onUpdate={async () => {
+            try {
+              setOrders(await getOrders());
+            } catch (error) {
+              console.error("Error al recargar los pedidos", error);
+              toast.error("No se pudieron cargar los pedidos");
+            }
             setSelectedOrder(null);
           }}
         />

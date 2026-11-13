@@ -3,15 +3,22 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import type { ConfirmedOrder } from "@/types/order"
+import type { ConfirmedOrder, OrderItem } from "@/types/order"
 import { X, Package, Calendar, CreditCard, Edit, Save, Minus, Plus, Trash2 } from "lucide-react"
 import { updateOrderStatus, updateOrder } from "@/lib/order-storage"
+import { toast } from "sonner"
 
 interface OrderDetailModalProps {
   order: ConfirmedOrder
   onClose: () => void
   onUpdate: () => void
 }
+
+// Ración completa y media del mismo plato son líneas distintas: misma id, distinto isHalfPortion
+const sameLine = (a: OrderItem, b: OrderItem) =>
+  a.id === b.id && !!a.isHalfPortion === !!b.isHalfPortion
+const lineKey = (item: OrderItem) => `${item.id}-${item.isHalfPortion ? "media" : "completa"}`
+const lineName = (item: OrderItem) => `${item.name}${item.isHalfPortion ? " (media)" : ""}`
 
 export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -27,16 +34,22 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
     }).format(date)
   }
 
-  const handleStatusChange = (status: ConfirmedOrder["status"]) => {
-    updateOrderStatus(order.id, status)
+  const handleStatusChange = async (status: ConfirmedOrder["status"]) => {
+    try {
+      await updateOrderStatus(order.id, status)
+    } catch (error) {
+      console.error("Error al cambiar el estado", error)
+      toast.error("No se pudo cambiar el estado del pedido")
+      return
+    }
     onUpdate()
   }
 
-  const handleQuantityChange = (itemId: string, delta: number) => {
+  const handleQuantityChange = (target: OrderItem, delta: number) => {
     setEditableItems((items) =>
       items
         .map((item) => {
-          if (item.id === itemId) {
+          if (sameLine(item, target)) {
             const newQuantity = Math.max(0, item.quantity + delta)
             return { ...item, quantity: newQuantity }
           }
@@ -46,16 +59,23 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
     )
   }
 
-  const handleRemoveItem = (itemId: string) => {
-    setEditableItems((items) => items.filter((item) => item.id !== itemId))
+  const handleRemoveItem = (target: OrderItem) => {
+    setEditableItems((items) => items.filter((item) => !sameLine(item, target)))
   }
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (editableItems.length === 0) {
       alert("El pedido debe tener al menos un artículo")
       return
     }
-    updateOrder(order.id, editableItems)
+    try {
+      await updateOrder(order.id, editableItems)
+    } catch (error) {
+      // Se mantiene la edición abierta para no perder los cambios
+      console.error("Error al guardar los cambios", error)
+      toast.error("No se pudieron guardar los cambios del pedido")
+      return
+    }
     setIsEditing(false)
     onUpdate()
   }
@@ -86,7 +106,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0 h-12 w-12">
+          <Button variant="ghost" size="icon" aria-label="Cerrar ventana" onClick={onClose} className="shrink-0 h-12 w-12">
             <X className="w-8 h-8" />
           </Button>
         </div>
@@ -108,7 +128,7 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
 
           <div className="space-y-3 mb-6">
             {currentItems.map((item) => (
-              <Card key={item.id} className="p-4 bg-background">
+              <Card key={lineKey(item)} className="p-4 bg-background">
                 <div className="flex items-center gap-4">
                   <img
                     src={item.image || "/placeholder.svg"}
@@ -116,7 +136,10 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                     className="w-20 h-20 rounded-lg object-cover bg-secondary"
                   />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-foreground text-2xl mb-1">{item.name}</h3>
+                    <h3 className="font-semibold text-foreground text-2xl mb-1">
+                      {item.name}
+                      {item.isHalfPortion && " (Media)"}
+                    </h3>
                     <p className="text-muted-foreground text-lg">€{item.price.toFixed(2)}</p>
                   </div>
 
@@ -126,7 +149,8 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleQuantityChange(item.id, -1)}
+                          aria-label={`Quitar una unidad de ${lineName(item)}`}
+                          onClick={() => handleQuantityChange(item, -1)}
                           className="h-12 w-12 hover:bg-background"
                         >
                           <Minus className="w-7 h-7" />
@@ -135,7 +159,8 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleQuantityChange(item.id, 1)}
+                          aria-label={`Añadir una unidad de ${lineName(item)}`}
+                          onClick={() => handleQuantityChange(item, 1)}
                           className="h-12 w-12 hover:bg-background"
                         >
                           <Plus className="w-7 h-7" />
@@ -144,7 +169,8 @@ export function OrderDetailModal({ order, onClose, onUpdate }: OrderDetailModalP
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveItem(item.id)}
+                        aria-label={`Quitar ${lineName(item)} del pedido`}
+                        onClick={() => handleRemoveItem(item)}
                         className="h-12 w-12 text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-7 h-7" />

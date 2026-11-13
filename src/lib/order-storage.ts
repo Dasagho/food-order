@@ -1,56 +1,27 @@
 import type { ConfirmedOrder } from "@/types/order"
+import { getBackend } from "./storage"
 
-const STORAGE_KEY = "confirmed_orders"
-
-export function saveOrder(order: ConfirmedOrder): void {
-  if (typeof window === "undefined") return
-
-  const orders = getOrders()
-  orders.unshift(order) // Añadir al principio
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders))
+export async function saveOrder(order: ConfirmedOrder): Promise<void> {
+  await (await getBackend()).addOrder(order)
 }
 
-export function getOrders(): ConfirmedOrder[] {
-  if (typeof window === "undefined") return []
-
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (!stored) return []
-
-  const orders = JSON.parse(stored)
-  // Convertir las fechas de string a Date
-  return orders.map((order: any) => ({
-    ...order,
-    date: new Date(order.date),
-  }))
+export async function getOrders(): Promise<ConfirmedOrder[]> {
+  return (await getBackend()).listOrders()
 }
 
-export function deleteOrder(orderId: string): void {
-  if (typeof window === "undefined") return
-
-  const orders = getOrders()
-  const filtered = orders.filter((order) => order.id !== orderId)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+export async function deleteOrder(orderId: string): Promise<void> {
+  await (await getBackend()).removeOrder(orderId)
 }
 
-export function updateOrderStatus(orderId: string, status: ConfirmedOrder["status"]): void {
-  if (typeof window === "undefined") return
-
-  const orders = getOrders()
-  const updated = orders.map((order) => (order.id === orderId ? { ...order, status } : order))
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+export async function updateOrderStatus(orderId: string, status: ConfirmedOrder["status"]): Promise<void> {
+  await (await getBackend()).patchOrder(orderId, (order) => ({ ...order, status }))
 }
 
-export function updateOrder(orderId: string, items: ConfirmedOrder["items"]): void {
-  if (typeof window === "undefined") return
-
-  const orders = getOrders()
+export async function updateOrder(orderId: string, items: ConfirmedOrder["items"]): Promise<void> {
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const updated = orders.map((order) => (order.id === orderId ? { ...order, items, total } : order))
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+  await (await getBackend()).patchOrder(orderId, (order) => ({ ...order, items, total }))
 }
 
-export function getNextOrderNumber(): number {
-  const orders = getOrders()
-  if (orders.length === 0) return 1
-  return Math.max(...orders.map((o) => o.orderNumber)) + 1
+export async function getNextOrderNumber(): Promise<number> {
+  return (await (await getBackend()).maxOrderNumber()) + 1
 }
